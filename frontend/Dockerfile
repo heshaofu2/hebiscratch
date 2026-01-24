@@ -18,8 +18,10 @@ WORKDIR /scratch-gui
 ARG SCRATCH_GUI_REPO=https://github.com/heshaofu2/scratch-gui.git
 ARG SCRATCH_GUI_BRANCH=develop
 
+# 跳过 prepublish（需要访问 MIT 服务器下载 microbit hex 文件，国内网络慢）
+# 直接运行 webpack build
 RUN git clone --depth 1 --branch ${SCRATCH_GUI_BRANCH} ${SCRATCH_GUI_REPO} . && \
-    npm ci && \
+    npm ci --ignore-scripts && \
     npm run build
 
 # ========== 阶段 2: 安装前端依赖 ==========
