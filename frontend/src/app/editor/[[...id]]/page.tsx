@@ -49,21 +49,22 @@ export default function EditorPage() {
     };
   }, [authLoading, isAuthenticated, projectId, router, fetchProject, setCurrentProject]);
 
+  // 用于跟踪是否是首次加载项目
+  const [initialLoadDone, setInitialLoadDone] = useState(false);
+
   useEffect(() => {
     if (currentProject) {
       setTitle(currentProject.title);
-      // 如果项目有 sb3 数据（base64），直接使用
-      // 否则尝试将 projectJson 转换为字符串
-      if (currentProject.projectJson) {
-        if (typeof currentProject.projectJson === 'string') {
-          setProjectData(currentProject.projectJson);
-        } else {
-          // 将 JSON 对象转换为字符串
-          setProjectData(JSON.stringify(currentProject.projectJson));
+      // 只在首次加载时设置项目数据，保存后不重新加载（编辑器状态已是最新）
+      if (!initialLoadDone && currentProject.projectJson) {
+        const json = currentProject.projectJson as { sb3?: string };
+        if (json.sb3) {
+          setProjectData(json.sb3);
+          setInitialLoadDone(true);
         }
       }
     }
-  }, [currentProject]);
+  }, [currentProject, initialLoadDone]);
 
   // 处理保存 - 接收 base64 编码的 sb3 数据
   const handleSave = useCallback(async (sb3Data: string) => {
@@ -97,10 +98,7 @@ export default function EditorPage() {
     );
   }
 
-  // 准备传递给编辑器的数据
-  const editorProjectData = projectData
-    ? (currentProject?.projectJson as { sb3?: string })?.sb3 || projectData
-    : undefined;
+  // projectData 已经是 sb3 data URL 格式，直接使用
 
   return (
     <div className="h-[calc(100vh-64px)] flex flex-col bg-gray-100">
@@ -141,7 +139,7 @@ export default function EditorPage() {
       {/* 编辑器区域 */}
       <div className="flex-1 overflow-hidden">
         <ScratchEditor
-          projectData={editorProjectData}
+          projectData={projectData}
           onSave={handleSave}
         />
       </div>

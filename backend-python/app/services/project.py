@@ -32,6 +32,12 @@ async def save_project_data(
         project.storage_path = None
         return
 
+    # 去掉 data URL 前缀（如果有）
+    # 格式: data:application/x.scratch.sb3;base64,XXXX
+    if sb3_data.startswith("data:"):
+        # 提取 base64 部分
+        sb3_data = sb3_data.split(",", 1)[1]
+
     # 解码 base64 数据并上传到 MinIO
     file_data = base64.b64decode(sb3_data)
     object_name = project.get_storage_object_name()
@@ -67,7 +73,8 @@ async def load_project_data(project: Project) -> Optional[dict[str, Any]]:
         return None
 
     sb3_base64 = base64.b64encode(file_data).decode("utf-8")
-    return {"sb3": sb3_base64}
+    # 返回 data URL 格式，前端需要这个格式来加载项目
+    return {"sb3": f"data:application/x.scratch.sb3;base64,{sb3_base64}"}
 
 
 async def delete_project_data(project: Project) -> None:
