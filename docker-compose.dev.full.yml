@@ -1,0 +1,97 @@
+version: '3.8'
+
+# 开发模式：全部服务在 Docker 中运行，支持热重载
+# 使用方法: docker-compose -f docker-compose.dev.full.yml up -d
+
+services:
+  # Next.js 前端（开发模式）
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: scratch-frontend-dev
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=http://localhost:3001
+      - WATCHPACK_POLLING=true
+    volumes:
+      - ./frontend/src:/app/src:cached
+      - ./frontend/public:/app/public:cached
+      - ./frontend/next.config.ts:/app/next.config.ts:cached
+      - ./frontend/tailwind.config.ts:/app/tailwind.config.ts:cached
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  # FastAPI 后端（开发模式）
+  backend:
+    build:
+      context: ./backend-python
+      dockerfile: Dockerfile.dev
+    container_name: scratch-backend-dev
+    ports:
+      - "3001:3001"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=3001
+      - DEBUG=true
+      - MONGODB_URL=mongodb://mongo:27017
+      - MONGODB_DB_NAME=scratch
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=${JWT_SECRET:-dev-secret-key-not-for-production}
+      - JWT_ALGORITHM=HS256
+      - JWT_EXPIRE_DAYS=7
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minioadmin}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-minioadmin}
+      - MINIO_BUCKET=scratch-assets
+      - MINIO_SECURE=false
+    volumes:
+      - ./backend-python/app:/app/app:cached
+      - ./backend-python/run.py:/app/run.py:cached
+    depends_on:
+      - mongo
+      - redis
+      - minio
+    restart: unless-stopped
+
+  # MongoDB 数据库
+  mongo:
+    image: mongo:6.0
+    container_name: scratch-mongo-dev
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data_dev:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: scratch
+
+  # Redis 缓存
+  redis:
+    image: redis:7.0-alpine
+    container_name: scratch-redis-dev
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data_dev:/data
+
+  # MinIO 对象存储
+  minio:
+    image: minio/minio:latest
+    container_name: scratch-minio-dev
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin}
+    volumes:
+      - minio_data_dev:/data
+    command: server /data --console-address ":9001"
+
+volumes:
+  mongo_data_dev:
+  redis_data_dev:
+  minio_data_dev:

@@ -1,0 +1,25 @@
+# FastAPI 后端 Dockerfile（开发模式）
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# 安装系统依赖
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
+
+# 复制依赖文件并安装
+COPY pyproject.toml ./
+RUN pip install --no-cache-dir -e .
+
+# 复制应用代码（会被 volume 覆盖）
+COPY app ./app
+COPY run.py ./
+
+# 设置开发模式
+ENV DEBUG=true
+
+EXPOSE 3001
+
+# 开发模式启动（支持热重载）
+CMD ["python", "run.py"]

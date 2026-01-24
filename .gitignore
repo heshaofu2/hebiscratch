@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+.next/
+out/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# 保留模板，忽略实际配置
+!.env.example
+!.env.development
+!.env.production
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Docker volumes (for local dev)
+mongo_data/
+redis_data/
+minio_data/
