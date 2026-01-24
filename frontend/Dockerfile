@@ -1,19 +1,37 @@
 # Next.js 前端 Dockerfile
 FROM node:20-alpine AS base
 
-# 依赖安装阶段
+# 安装 git（用于克隆 scratch-gui）
+RUN apk add --no-cache git
+
+# ========== 阶段 1: 构建 scratch-gui ==========
+FROM base AS scratch-builder
+WORKDIR /scratch-gui
+
+# 克隆 scratch-gui fork 并构建
+ARG SCRATCH_GUI_REPO=https://github.com/heshaofu2/scratch-gui.git
+ARG SCRATCH_GUI_BRANCH=develop
+
+RUN git clone --depth 1 --branch ${SCRATCH_GUI_BRANCH} ${SCRATCH_GUI_REPO} . && \
+    npm ci && \
+    npm run build
+
+# ========== 阶段 2: 安装前端依赖 ==========
 FROM base AS deps
 WORKDIR /app
 
 COPY package.json package-lock.json* ./
 RUN npm ci
 
-# 构建阶段
+# ========== 阶段 3: 构建前端 ==========
 FROM base AS builder
 WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+
+# 复制 scratch-gui 构建产物
+COPY --from=scratch-builder /scratch-gui/build ./public/scratch
 
 # 设置环境变量
 ENV NEXT_TELEMETRY_DISABLED=1

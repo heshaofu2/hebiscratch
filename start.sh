@@ -96,9 +96,23 @@ pull_base_images() {
     return 0
 }
 
+# 检查 scratch-gui 构建产物
+check_scratch_gui() {
+    local scratch_dir="frontend/public/scratch"
+    if [ ! -d "$scratch_dir" ] || [ -z "$(ls -A "$scratch_dir" 2>/dev/null)" ]; then
+        print_warning "scratch-gui 构建产物不存在"
+        print_info "Docker 构建时会自动从 GitHub 克隆并构建 scratch-gui"
+        print_info "如需本地开发 scratch-gui，请运行: ./build-scratch.sh clone && ./build-scratch.sh"
+        echo ""
+    fi
+}
+
 # 启动开发模式
 start_dev() {
     print_info "启动开发模式..."
+
+    # 检查 scratch-gui
+    check_scratch_gui
 
     # 使用开发环境配置
     if [ -f ".env.development" ]; then
@@ -135,6 +149,9 @@ start_dev() {
 # 启动生产模式
 start_prod() {
     print_info "启动生产模式..."
+
+    # 检查 scratch-gui
+    check_scratch_gui
 
     # 检查生产环境配置
     if [ ! -f ".env" ]; then

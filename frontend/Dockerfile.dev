@@ -1,6 +1,9 @@
 # Next.js 前端 Dockerfile（开发模式）
 FROM node:20-alpine
 
+# 安装 git（用于克隆 scratch-gui）
+RUN apk add --no-cache git
+
 WORKDIR /app
 
 # 安装依赖
@@ -16,6 +19,22 @@ COPY next.config.ts ./
 # 复制源码（会被 volume 覆盖）
 COPY src ./src
 COPY public ./public
+
+# 构建 scratch-gui（如果 public/scratch 不存在）
+ARG SCRATCH_GUI_REPO=https://github.com/heshaofu2/scratch-gui.git
+ARG SCRATCH_GUI_BRANCH=develop
+
+RUN if [ ! -d "public/scratch" ] || [ -z "$(ls -A public/scratch 2>/dev/null)" ]; then \
+        echo "Building scratch-gui..." && \
+        git clone --depth 1 --branch ${SCRATCH_GUI_BRANCH} ${SCRATCH_GUI_REPO} /tmp/scratch-gui && \
+        cd /tmp/scratch-gui && \
+        npm ci && \
+        npm run build && \
+        cp -r build/* /app/public/scratch/ && \
+        rm -rf /tmp/scratch-gui; \
+    else \
+        echo "scratch-gui already exists, skipping build"; \
+    fi
 
 # 禁用 Next.js 遥测
 ENV NEXT_TELEMETRY_DISABLED=1
