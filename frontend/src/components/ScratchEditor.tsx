@@ -5,6 +5,7 @@ import { useEffect, useRef, useCallback, useState } from 'react';
 interface ScratchEditorProps {
   projectData?: string; // base64 encoded sb3 or project JSON string
   onSave?: (projectData: string) => void;
+  onThumbnail?: (thumbnailData: string) => void; // base64 encoded PNG
   onProjectChange?: () => void;
 }
 
@@ -14,11 +15,12 @@ interface ScratchMessage {
   data: Record<string, unknown>;
 }
 
-export default function ScratchEditor({ projectData, onSave, onProjectChange }: ScratchEditorProps) {
+export default function ScratchEditor({ projectData, onSave, onThumbnail, onProjectChange }: ScratchEditorProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [isReady, setIsReady] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const pendingLoadRef = useRef<string | null>(null);
+  const loadedProjectRef = useRef<string | null>(null); // 跟踪已加载的项目数据，防止重复加载
 
   // 向 iframe 发送消息
   const sendMessage = useCallback((type: string, data?: unknown) => {
@@ -46,8 +48,11 @@ export default function ScratchEditor({ projectData, onSave, onProjectChange }: 
           setIsReady(true);
           // 如果有待加载的项目数据，现在加载
           if (pendingLoadRef.current) {
-            sendMessage('LOAD_PROJECT', pendingLoadRef.current);
+            const dataToLoad = pendingLoadRef.current;
             pendingLoadRef.current = null;
+            // 标记为已加载，防止 useEffect 重复发送
+            loadedProjectRef.current = dataToLoad;
+            sendMessage('LOAD_PROJECT', dataToLoad);
           }
           break;
 
@@ -65,6 +70,14 @@ export default function ScratchEditor({ projectData, onSave, onProjectChange }: 
           }
           break;
 
+        case 'THUMBNAIL':
+          if (data.success && onThumbnail) {
+            onThumbnail(data.data as string);
+          } else if (!data.success) {
+            console.error('Failed to get thumbnail:', data.error);
+          }
+          break;
+
         case 'PROJECT_CHANGED':
           onProjectChange?.();
           break;
@@ -77,12 +90,17 @@ export default function ScratchEditor({ projectData, onSave, onProjectChange }: 
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [onSave, onProjectChange, sendMessage]);
+  }, [onSave, onThumbnail, onProjectChange, sendMessage]);
 
   // 加载项目数据
   useEffect(() => {
     if (projectData) {
+      // 如果这个项目数据已经加载过了，不要重复加载
+      if (loadedProjectRef.current === projectData) {
+        return;
+      }
       if (isReady) {
+        loadedProjectRef.current = projectData;
         sendMessage('LOAD_PROJECT', projectData);
       } else {
         // 保存待加载的数据
@@ -116,17 +134,23 @@ export default function ScratchEditor({ projectData, onSave, onProjectChange }: 
     sendMessage('STOP_PROJECT');
   }, [sendMessage]);
 
+  // 获取项目截图
+  const getThumbnail = useCallback(() => {
+    sendMessage('GET_THUMBNAIL');
+  }, [sendMessage]);
+
   // 将方法挂载到 window 上，供父组件调用
   useEffect(() => {
     (window as unknown as Record<string, unknown>).scratchEditor = {
       requestSave,
       runProject,
       stopProject,
+      getThumbnail,
     };
     return () => {
       delete (window as unknown as Record<string, unknown>).scratchEditor;
     };
-  }, [requestSave, runProject, stopProject]);
+  }, [requestSave, runProject, stopProject, getThumbnail]);
 
   return (
     <div className="w-full h-full relative">
