@@ -59,7 +59,8 @@ pull_image_with_retry() {
     while [ $retry -lt $MAX_RETRIES ]; do
         print_info "拉取镜像: $image (尝试 $((retry + 1))/$MAX_RETRIES)"
 
-        if timeout $PULL_TIMEOUT docker pull "$image"; then
+        # 直接执行 docker pull（Docker 自身会处理网络重试）
+        if docker pull "$image"; then
             print_success "镜像拉取成功: $image"
             return 0
         fi
