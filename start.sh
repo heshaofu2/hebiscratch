@@ -21,6 +21,11 @@ NC='\033[0m' # No Color
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$PROJECT_DIR"
 
+# 配置参数
+PULL_TIMEOUT=600        # 镜像拉取超时时间（秒）
+MAX_RETRIES=5           # 最大重试次数
+RETRY_DELAY=10          # 重试间隔（秒）
+
 # 打印带颜色的消息
 print_info() {
     echo -e "${BLUE}[INFO]${NC} $1"
@@ -46,6 +51,50 @@ check_docker() {
     fi
 }
 
+# 拉取单个镜像（带重试）
+pull_image_with_retry() {
+    local image=$1
+    local retry=0
+
+    while [ $retry -lt $MAX_RETRIES ]; do
+        print_info "拉取镜像: $image (尝试 $((retry + 1))/$MAX_RETRIES)"
+
+        if timeout $PULL_TIMEOUT docker pull "$image"; then
+            print_success "镜像拉取成功: $image"
+            return 0
+        fi
+
+        retry=$((retry + 1))
+        if [ $retry -lt $MAX_RETRIES ]; then
+            print_warning "拉取失败，${RETRY_DELAY}秒后重试..."
+            sleep $RETRY_DELAY
+        fi
+    done
+
+    print_error "镜像拉取失败: $image (已重试 $MAX_RETRIES 次)"
+    return 1
+}
+
+# 预拉取所有基础镜像
+pull_base_images() {
+    local images=("$@")
+
+    print_info "开始预拉取基础镜像..."
+    echo ""
+
+    for image in "${images[@]}"; do
+        if ! pull_image_with_retry "$image"; then
+            print_error "无法拉取镜像 $image，请检查网络连接"
+            print_info "提示: 可以尝试配置 Docker 镜像加速器"
+            return 1
+        fi
+    done
+
+    echo ""
+    print_success "所有基础镜像拉取完成"
+    return 0
+}
+
 # 启动开发模式
 start_dev() {
     print_info "启动开发模式..."
@@ -54,6 +103,18 @@ start_dev() {
     if [ -f ".env.development" ]; then
         cp .env.development .env
         print_info "已加载开发环境配置"
+    fi
+
+    # 预拉取基础镜像（避免 docker-compose 拉取超时）
+    local dev_images=(
+        "mongo:6.0"
+        "redis:7.0-alpine"
+        "minio/minio:latest"
+    )
+
+    if ! pull_base_images "${dev_images[@]}"; then
+        print_error "镜像拉取失败，无法启动服务"
+        exit 1
     fi
 
     docker-compose -f docker-compose.dev.full.yml up -d --build
@@ -88,6 +149,19 @@ start_prod() {
     # 检查是否使用了默认的不安全密钥
     if grep -q "your-super-secret-jwt-key-change-in-production" .env 2>/dev/null; then
         print_warning "检测到使用默认 JWT_SECRET，生产环境请务必修改！"
+    fi
+
+    # 预拉取基础镜像（避免 docker-compose 拉取超时）
+    local prod_images=(
+        "mongo:6.0"
+        "redis:7.0-alpine"
+        "minio/minio:latest"
+        "nginx:alpine"
+    )
+
+    if ! pull_base_images "${prod_images[@]}"; then
+        print_error "镜像拉取失败，无法启动服务"
+        exit 1
     fi
 
     docker-compose -f docker-compose.yml up -d --build
