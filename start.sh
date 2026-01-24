@@ -110,7 +110,7 @@ start_dev() {
     local dev_images=(
         "mongo:6.0"
         "redis:7.0-alpine"
-        "minio/minio:latest"
+        "quay.io/minio/minio:latest"
     )
 
     if ! pull_base_images "${dev_images[@]}"; then
@@ -156,7 +156,7 @@ start_prod() {
     local prod_images=(
         "mongo:6.0"
         "redis:7.0-alpine"
-        "minio/minio:latest"
+        "quay.io/minio/minio:latest"
         "nginx:alpine"
     )
 

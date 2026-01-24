@@ -12,8 +12,6 @@ COPY tsconfig.json ./
 COPY postcss.config.mjs ./
 COPY eslint.config.mjs ./
 COPY next.config.ts ./
-COPY tailwind.config.ts ./
-COPY components.json ./
 
 # 复制源码（会被 volume 覆盖）
 COPY src ./src

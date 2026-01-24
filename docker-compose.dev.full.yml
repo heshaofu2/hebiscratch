@@ -79,7 +79,7 @@ services:
 
   # MinIO 对象存储
   minio:
-    image: minio/minio:latest
+    image: quay.io/minio/minio:latest
     container_name: scratch-minio-dev
     ports:
       - "9000:9000"
