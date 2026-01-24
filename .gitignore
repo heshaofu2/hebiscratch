@@ -36,3 +36,6 @@ Thumbs.db
 mongo_data/
 redis_data/
 minio_data/
+
+# Scratch GUI build (large files)
+scratch-gui-build/
