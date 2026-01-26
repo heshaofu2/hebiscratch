@@ -42,3 +42,5 @@ minio_data/
 
 # Scratch GUI build (large files)
 scratch-gui-build/
+
+todolist.md

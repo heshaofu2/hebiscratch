@@ -1,42 +1,229 @@
 # Scratch 私有化部署指南
 
-本文档指导您将 Scratch 服务部署到阿里云轻量应用服务器（2vCPU 4GiB）。
+本文档指导您将 Scratch 服务部署到阿里云轻量应用服务器。
 
 ## 目录
 
-- [前置要求](#前置要求)
-- [一、服务器初始化](#一服务器初始化)
-- [二、项目部署](#二项目部署)
-- [三、HTTPS 配置（可选）](#三https-配置可选)
-- [四、运维指南](#四运维指南)
-- [五、常见问题](#五常见问题)
+- [项目概述](#项目概述)
+- [快速开始](#快速开始)
+- [首次部署](#首次部署)
+- [HTTPS 配置](#https-配置可选)
+- [运维指南](#运维指南)
+- [常见问题](#常见问题)
 
 ---
 
-## 前置要求
+## 项目概述
+
+### 项目架构
+
+```
+scratch/                          # 主仓库 (GitHub: heshaofu2/hebiscratch)
+├── frontend/                     # Next.js 前端
+├── backend-python/               # FastAPI 后端
+├── nginx/                        # Nginx 配置
+├── docker-compose.yml            # 生产环境 Docker 配置
+├── docker-compose.dev.full.yml   # 开发环境 Docker 配置
+├── start.sh                      # 启动脚本
+├── build-scratch.sh              # scratch-gui 本地构建脚本
+└── scratch-gui-build/            # scratch-gui 源码 (独立仓库，已 gitignore)
+                                  # GitHub: heshaofu2/scratch-gui (develop 分支)
+```
+
+### 仓库说明
+
+| 仓库 | 地址 | 说明 |
+|------|------|------|
+| 主项目 | https://github.com/heshaofu2/hebiscratch | 前端 + 后端 + 部署配置 |
+| scratch-gui fork | https://github.com/heshaofu2/scratch-gui | Scratch 编辑器（定制版） |
+
+### 服务架构
+
+```
+                    ┌─────────────┐
+                    │   用户浏览器  │
+                    └──────┬──────┘
+                           │
+                    ┌──────▼──────┐
+                    │    Nginx    │ :80/:443
+                    │  (反向代理)  │
+                    └──────┬──────┘
+              ┌────────────┼────────────┐
+              │            │            │
+       ┌──────▼─────┐ ┌────▼────┐ ┌─────▼─────┐
+       │  Frontend  │ │ Backend │ │   MinIO   │
+       │  (Next.js) │ │(FastAPI)│ │ (对象存储) │
+       │   :3000    │ │  :3001  │ │   :9000   │
+       └────────────┘ └────┬────┘ └───────────┘
+                           │
+              ┌────────────┼────────────┐
+              │                         │
+       ┌──────▼─────┐           ┌───────▼───────┐
+       │  MongoDB   │           │     Redis     │
+       │  (数据库)   │           │    (缓存)     │
+       │   :27017   │           │    :6379      │
+       └────────────┘           └───────────────┘
+```
+
+### 端口说明
+
+| 服务 | 内部端口 | 外部端口 | 说明 |
+|-----|---------|---------|------|
+| Nginx | 80/443 | 80/443 | 反向代理，对外暴露 |
+| Frontend | 3000 | - | 内部访问 |
+| Backend | 3001 | - | 内部访问 |
+| MongoDB | 27017 | - | 内部访问 |
+| Redis | 6379 | - | 内部访问 |
+| MinIO | 9000/9001 | - | 内部访问 |
+
+---
+
+## 快速开始
+
+> 本节面向已完成首次部署的用户，提供日常开发和部署的快速参考。
+
+### 服务器信息
+
+- **服务器**: 阿里云轻量级服务器
+- **IP**: 120.26.7.208
+- **SSH 密钥**: `./hsf.pem`
+- **项目路径**: `/opt/scratch`
+- **访问地址**: http://120.26.7.208
+
+### 本地开发
+
+```bash
+# 首次克隆项目
+git clone https://github.com/heshaofu2/hebiscratch.git scratch
+cd scratch
+
+# 克隆 scratch-gui（如需修改编辑器）
+./build-scratch.sh clone
+
+# 启动开发环境
+./start.sh dev
+
+# 访问地址
+# 前端: http://localhost:3000
+# 后端: http://localhost:3001
+# API 文档: http://localhost:3001/docs
+```
+
+### 线上部署
+
+#### 方式一：一键部署
+
+```bash
+ssh -i ./hsf.pem root@120.26.7.208 "cd /opt/scratch && git pull origin main && ./start.sh prod"
+```
+
+#### 方式二：手动部署
+
+```bash
+# 1. 连接服务器
+ssh -i ./hsf.pem root@120.26.7.208
+
+# 2. 进入项目目录
+cd /opt/scratch
+
+# 3. 拉取最新代码
+git pull origin main
+
+# 4. 重新构建并启动
+./start.sh prod
+```
+
+#### 方式三：查看服务状态
+
+```bash
+# 查看容器状态
+ssh -i ./hsf.pem root@120.26.7.208 "docker ps"
+
+# 查看日志
+ssh -i ./hsf.pem root@120.26.7.208 "cd /opt/scratch && ./start.sh logs"
+
+# 停止服务
+ssh -i ./hsf.pem root@120.26.7.208 "cd /opt/scratch && ./start.sh stop"
+```
+
+### 常用命令速查
+
+#### 本地命令
+
+| 命令 | 说明 |
+|------|------|
+| `./start.sh dev` | 启动本地开发环境 |
+| `./start.sh stop` | 停止所有服务 |
+| `./build-scratch.sh` | 构建 scratch-gui 并复制到前端 |
+| `./build-scratch.sh clone` | 首次克隆 scratch-gui |
+| `./build-scratch.sh pull` | 更新并重新构建 scratch-gui |
+
+#### 服务器命令
+
+| 命令 | 说明 |
+|------|------|
+| `./start.sh prod` | 启动生产环境 |
+| `./start.sh stop` | 停止所有服务 |
+| `./start.sh logs` | 查看服务日志 |
+| `./start.sh status` | 查看服务状态 |
+
+### 完整更新流程示例
+
+#### 场景 1：只修改前端/后端代码
+
+```bash
+# 1. 本地修改代码并提交
+git add .
+git commit -m "fix: bug description"
+git push origin main
+
+# 2. 部署到服务器
+ssh -i ./hsf.pem root@120.26.7.208 "cd /opt/scratch && git pull origin main && ./start.sh prod"
+```
+
+#### 场景 2：修改 scratch-gui 编辑器
+
+```bash
+# 1. 修改 scratch-gui-build 中的代码
+
+# 2. 提交 scratch-gui 修改
+cd scratch-gui-build
+git add .
+git commit -m "feat: add new feature to editor"
+git push origin develop
+
+# 3. 部署到服务器（Docker 构建时会自动拉取最新的 scratch-gui）
+ssh -i ./hsf.pem root@120.26.7.208 "cd /opt/scratch && docker builder prune -af && ./start.sh prod"
+```
+
+---
+
+## 首次部署
+
+> 本节提供完整的首次部署指南，包括服务器初始化和项目配置。
+
+### 前置要求
 
 - 阿里云轻量应用服务器（推荐配置：2vCPU 4GiB）
 - 操作系统：Ubuntu 22.04 LTS 或 Debian 11+
 - 已配置 SSH 访问
 - （可选）已备案的域名
 
----
+### 1. 服务器初始化
 
-## 一、服务器初始化
-
-### 1.1 连接服务器
+#### 1.1 连接服务器
 
 ```bash
 ssh root@<你的服务器IP>
 ```
 
-### 1.2 更新系统
+#### 1.2 更新系统
 
 ```bash
 apt update && apt upgrade -y
 ```
 
-### 1.3 安装 Docker
+#### 1.3 安装 Docker
 
 ```bash
 # 安装必要依赖
@@ -59,12 +246,11 @@ docker compose version
 
 > **国内加速**：如果下载速度慢，可使用阿里云镜像源：
 > ```bash
-> # 替换为阿里云 Docker 镜像源
 > curl -fsSL https://mirrors.aliyun.com/docker-ce/linux/ubuntu/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
 > echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://mirrors.aliyun.com/docker-ce/linux/ubuntu $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
 > ```
 
-### 1.4 配置 Docker 镜像加速（推荐）
+#### 1.4 配置 Docker 镜像加速（推荐）
 
 ```bash
 # 创建 Docker 配置目录
@@ -86,7 +272,7 @@ systemctl daemon-reload
 systemctl restart docker
 ```
 
-### 1.5 配置防火墙
+#### 1.5 配置防火墙
 
 ```bash
 # 安装 ufw（如未安装）
@@ -104,29 +290,27 @@ ufw --force enable
 ufw status
 ```
 
-### 1.6 安装 Git
+#### 1.6 安装 Git
 
 ```bash
 apt install -y git
 ```
 
----
+### 2. 项目部署
 
-## 二、项目部署
-
-### 2.1 克隆代码
+#### 2.1 克隆代码
 
 ```bash
 # 创建部署目录
 mkdir -p /opt/apps
 cd /opt/apps
 
-# 克隆代码（替换为你的仓库地址）
-git clone <你的仓库地址> scratch
+# 克隆代码
+git clone https://github.com/heshaofu2/hebiscratch.git scratch
 cd scratch
 ```
 
-### 2.2 配置环境变量
+#### 2.2 配置环境变量
 
 ```bash
 # 复制环境变量模板
@@ -161,7 +345,7 @@ MINIO_SECRET_KEY=<粘贴生成的MINIO_SECRET_KEY>
 
 按 `Ctrl+O` 保存，`Ctrl+X` 退出。
 
-### 2.3 构建并启动服务
+#### 2.3 构建并启动服务
 
 ```bash
 # 构建镜像（首次部署需要较长时间）
@@ -186,7 +370,7 @@ scratch-redis      Up        6379/tcp
 scratch-minio      Up        9000/tcp, 9001/tcp
 ```
 
-### 2.4 验证部署
+#### 2.4 验证部署
 
 ```bash
 # 检查健康状态
@@ -198,7 +382,7 @@ curl http://localhost/api/health
 
 在浏览器中访问 `http://<你的服务器IP>`，应该能看到 Scratch 首页。
 
-### 2.5 初始化 MinIO 存储桶
+#### 2.5 初始化 MinIO 存储桶
 
 首次部署需要创建存储桶：
 
@@ -217,11 +401,11 @@ exit
 
 ---
 
-## 三、HTTPS 配置（可选）
+## HTTPS 配置（可选）
 
 如果你有域名并已完成备案，建议配置 HTTPS。
 
-### 3.1 域名解析
+### 1. 域名解析
 
 在阿里云域名控制台添加 A 记录：
 
@@ -229,13 +413,13 @@ exit
 |---------|---------|--------|
 | A | @ 或 scratch | 你的服务器IP |
 
-### 3.2 安装 Certbot
+### 2. 安装 Certbot
 
 ```bash
 apt install -y certbot
 ```
 
-### 3.3 获取 SSL 证书
+### 3. 获取 SSL 证书
 
 ```bash
 # 停止 Nginx 以释放 80 端口
@@ -248,7 +432,7 @@ certbot certonly --standalone -d your-domain.com --email your-email@example.com 
 docker compose start nginx
 ```
 
-### 3.4 配置 HTTPS
+### 4. 配置 HTTPS
 
 创建支持 HTTPS 的 Nginx 配置：
 
@@ -356,7 +540,7 @@ docker compose down
 docker compose up -d
 ```
 
-### 3.5 配置证书自动续期
+### 5. 配置证书自动续期
 
 ```bash
 # 添加定时任务
@@ -371,9 +555,9 @@ crontab -e
 
 ---
 
-## 四、运维指南
+## 运维指南
 
-### 4.1 查看日志
+### 查看日志
 
 ```bash
 # 查看所有服务日志
@@ -391,7 +575,7 @@ docker compose logs -f
 docker compose logs --tail=100
 ```
 
-### 4.2 服务管理
+### 服务管理
 
 ```bash
 # 停止所有服务
@@ -413,7 +597,7 @@ docker compose down
 docker compose down -v
 ```
 
-### 4.3 更新部署
+### 更新部署
 
 ```bash
 cd /opt/apps/scratch
@@ -426,7 +610,7 @@ docker compose build
 docker compose up -d
 ```
 
-### 4.4 数据备份
+### 数据备份
 
 #### 自动备份脚本
 
@@ -491,7 +675,7 @@ docker run --rm -v scratch_minio_data:/data -v /opt/backups/scratch:/backup alpi
 docker compose start minio
 ```
 
-### 4.5 监控资源使用
+### 监控资源使用
 
 ```bash
 # 查看容器资源使用情况
@@ -506,7 +690,7 @@ docker system prune -f
 
 ---
 
-## 五、常见问题
+## 常见问题
 
 ### Q1: 构建时内存不足
 
@@ -607,48 +791,15 @@ mc mb local/scratch-assets --ignore-existing
 mc anonymous set download local/scratch-assets
 ```
 
+### Q7: 构建失败
+
+1. 清理构建缓存：`docker builder prune -af`
+2. 检查网络：国内服务器需要配置镜像加速（已在 Dockerfile 中配置）
+3. 查看详细构建日志
+
 ---
 
 ## 附录
-
-### 服务架构
-
-```
-                    ┌─────────────┐
-                    │   用户浏览器  │
-                    └──────┬──────┘
-                           │
-                    ┌──────▼──────┐
-                    │    Nginx    │ :80/:443
-                    │  (反向代理)  │
-                    └──────┬──────┘
-              ┌────────────┼────────────┐
-              │            │            │
-       ┌──────▼─────┐ ┌────▼────┐ ┌─────▼─────┐
-       │  Frontend  │ │ Backend │ │   MinIO   │
-       │  (Next.js) │ │(FastAPI)│ │ (对象存储) │
-       │   :3000    │ │  :3001  │ │   :9000   │
-       └────────────┘ └────┬────┘ └───────────┘
-                           │
-              ┌────────────┼────────────┐
-              │                         │
-       ┌──────▼─────┐           ┌───────▼───────┐
-       │  MongoDB   │           │     Redis     │
-       │  (数据库)   │           │    (缓存)     │
-       │   :27017   │           │    :6379      │
-       └────────────┘           └───────────────┘
-```
-
-### 端口说明
-
-| 服务 | 内部端口 | 外部端口 | 说明 |
-|-----|---------|---------|------|
-| Nginx | 80/443 | 80/443 | 反向代理，对外暴露 |
-| Frontend | 3000 | - | 内部访问 |
-| Backend | 3001 | - | 内部访问 |
-| MongoDB | 27017 | - | 内部访问 |
-| Redis | 6379 | - | 内部访问 |
-| MinIO | 9000/9001 | - | 内部访问 |
 
 ### 数据目录
 
@@ -657,6 +808,24 @@ mc anonymous set download local/scratch-assets
 | mongo_data | MongoDB 数据 |
 | redis_data | Redis 数据 |
 | minio_data | MinIO 文件存储 |
+
+### 注意事项
+
+1. **安全组配置**: 确保阿里云安全组开放了 80 端口
+
+2. **环境变量**: 生产环境的 `.env` 文件包含敏感信息（JWT_SECRET、MINIO 凭据），请妥善保管
+
+3. **构建缓存**: 如果 scratch-gui 更新后服务器没有拉取最新代码，先清理构建缓存：
+   ```bash
+   docker builder prune -af
+   ```
+
+4. **micro:bit 功能**: 当前构建跳过了 micro:bit 固件下载，如需此功能请手动配置
+
+5. **SSH 密钥权限**: 确保密钥文件权限正确：
+   ```bash
+   chmod 600 ./hsf.pem
+   ```
 
 ---
 

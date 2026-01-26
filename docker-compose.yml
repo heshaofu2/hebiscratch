@@ -79,6 +79,20 @@ services:
     command: server /data --console-address ":9001"
     restart: unless-stopped
 
+  # Webhook 自动部署服务
+  webhook:
+    build:
+      context: ./webhook
+      dockerfile: Dockerfile
+    container_name: scratch-webhook
+    environment:
+      - WEBHOOK_SECRET=${WEBHOOK_SECRET:-your-webhook-secret}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock  # 访问 Docker
+      - /opt/scratch:/opt/scratch                   # 项目目录
+      - /var/log:/var/log                           # 日志目录
+    restart: unless-stopped
+
 volumes:
   mongo_data:
   redis_data:
