@@ -11,10 +11,11 @@ out/
 .env.local
 .env.*.local
 
-# 保留模板，忽略实际配置
+# 生产环境配置（不提交）
+.env.production
+
+# 模板文件（提交）
 !.env.example
-!.env.development
-!.env.production
 
 # Logs
 *.log

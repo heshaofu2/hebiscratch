@@ -314,7 +314,7 @@ cd scratch
 
 ```bash
 # 复制环境变量模板
-cp .env.production .env
+cp .env.example .env
 
 # 生成安全的 JWT 密钥
 JWT_SECRET=$(openssl rand -base64 32)
