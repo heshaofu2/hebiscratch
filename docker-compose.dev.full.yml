@@ -48,6 +48,10 @@ services:
       - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-minioadmin}
       - MINIO_BUCKET=scratch-assets
       - MINIO_SECURE=false
+      # AI (Google Gemini)
+      - AI_MODEL=gemini/gemini-2.0-flash
+      - AI_API_KEY=${GOOGLE_API_KEY:-}
+      - AI_API_BASE=
     volumes:
       - ./backend-python/app:/app/app:cached
       - ./backend-python/run.py:/app/run.py:cached

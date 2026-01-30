@@ -1,6 +1,15 @@
 import axios, { AxiosError } from 'axios';
 import Cookies from 'js-cookie';
 import type { User, Project, AuthResponse, ApiError } from '@/types';
+import type {
+  MistakeQuestion,
+  MistakeListItem,
+  MistakeStats,
+  MistakeCreateInput,
+  MistakeUpdateInput,
+  AIExtractResult,
+  Subject,
+} from '@/types/mistake';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
@@ -106,6 +115,69 @@ export const projectsApi = {
 export const shareApi = {
   getProject: async (token: string): Promise<Project> => {
     const response = await api.get<Project>(`/share/${token}`);
+    return response.data;
+  },
+};
+
+// Mistakes API
+export const mistakesApi = {
+  list: async (params?: { subject?: Subject; tag?: string; isMastered?: boolean }): Promise<MistakeListItem[]> => {
+    const response = await api.get<MistakeListItem[]>('/mistakes', { params });
+    return response.data;
+  },
+
+  get: async (id: string): Promise<MistakeQuestion> => {
+    const response = await api.get<MistakeQuestion>(`/mistakes/${id}`);
+    return response.data;
+  },
+
+  create: async (data: MistakeCreateInput): Promise<MistakeQuestion> => {
+    const response = await api.post<MistakeQuestion>('/mistakes', data);
+    return response.data;
+  },
+
+  update: async (id: string, data: MistakeUpdateInput): Promise<MistakeQuestion> => {
+    const response = await api.put<MistakeQuestion>(`/mistakes/${id}`, data);
+    return response.data;
+  },
+
+  delete: async (id: string): Promise<void> => {
+    await api.delete(`/mistakes/${id}`);
+  },
+
+  getStats: async (): Promise<MistakeStats> => {
+    const response = await api.get<MistakeStats>('/mistakes/stats');
+    return response.data;
+  },
+
+  uploadImage: async (id: string, file: File): Promise<MistakeQuestion> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await api.post<MistakeQuestion>(`/mistakes/${id}/images`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
+
+  getImageUrl: (id: string, index: number): string => {
+    return `${API_BASE_URL}/mistakes/${id}/images/${index}`;
+  },
+
+  extractContent: async (id: string): Promise<AIExtractResult> => {
+    const response = await api.post<AIExtractResult>(`/mistakes/${id}/extract`);
+    return response.data;
+  },
+
+  markReviewed: async (id: string): Promise<MistakeQuestion> => {
+    const response = await api.post<MistakeQuestion>(`/mistakes/${id}/review`);
+    return response.data;
+  },
+
+  exportPdf: async (params?: { subject?: Subject; includeImages?: boolean }): Promise<Blob> => {
+    const response = await api.get('/mistakes/export/pdf', {
+      params,
+      responseType: 'blob',
+    });
     return response.data;
   },
 };

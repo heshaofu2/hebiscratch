@@ -5,10 +5,15 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 
-from app.api import api_router
-from app.core.config import get_settings
-from app.models import User, Project
-from app.services import get_storage_service
+from app.common.core import get_settings
+from app.common.models import User
+from app.common.services import get_storage_service
+from app.common.api import auth_router
+from app.scratch.models import Project
+from app.scratch.api import projects_router, share_router
+from app.mistakes.models import MistakeQuestion
+from app.mistakes.api import mistakes_router
+from app.admin.api import admin_router
 
 settings = get_settings()
 
@@ -23,7 +28,7 @@ async def lifespan(app: FastAPI):
     client = AsyncIOMotorClient(settings.mongodb_url)
     await init_beanie(
         database=client[settings.mongodb_db_name],
-        document_models=[User, Project],
+        document_models=[User, Project, MistakeQuestion],
     )
     print(f"Connected to MongoDB: {settings.mongodb_db_name}")
 
@@ -55,7 +60,11 @@ app.add_middleware(
 )
 
 # 注册路由
-app.include_router(api_router, prefix="/api")
+app.include_router(auth_router, prefix="/api/auth", tags=["认证"])
+app.include_router(projects_router, prefix="/api/projects", tags=["项目"])
+app.include_router(share_router, prefix="/api/share", tags=["分享"])
+app.include_router(mistakes_router, prefix="/api/mistakes", tags=["错题本"])
+app.include_router(admin_router, prefix="/api/admin", tags=["管理后台"])
 
 
 @app.get("/")
