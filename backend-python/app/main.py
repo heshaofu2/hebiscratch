@@ -7,6 +7,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 
 from app.api import api_router
 from app.core.config import get_settings
+from app.core.security import hash_password
 from app.models import User, Project
 from app.services import get_storage_service
 
@@ -30,6 +31,26 @@ async def lifespan(app: FastAPI):
     # 初始化存储服务
     get_storage_service()
     print("Storage service initialized")
+
+    # 初始化默认管理员账号
+    admin_user = await User.find_one(User.username == "admin")
+    if admin_user is None:
+        admin_user = User(
+            username="admin",
+            password_hash=hash_password("admin"),
+            role="admin",
+            is_active=True,
+        )
+        await admin_user.insert()
+        print("Default admin user created: admin / admin")
+    elif admin_user.role != "admin":
+        # 升级旧的 admin 用户为管理员
+        admin_user.role = "admin"
+        admin_user.is_active = True
+        await admin_user.save()
+        print("Admin user upgraded to admin role")
+    else:
+        print("Admin user already exists")
 
     yield
 

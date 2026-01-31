@@ -1,6 +1,16 @@
 import axios, { AxiosError } from 'axios';
 import Cookies from 'js-cookie';
-import type { User, Project, AuthResponse, ApiError } from '@/types';
+import type {
+  User,
+  Project,
+  AuthResponse,
+  ApiError,
+  AdminUser,
+  AdminUserDetail,
+  PaginatedUsers,
+  UserCreateData,
+  UserUpdateData,
+} from '@/types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
@@ -107,6 +117,49 @@ export const shareApi = {
   getProject: async (token: string): Promise<Project> => {
     const response = await api.get<Project>(`/share/${token}`);
     return response.data;
+  },
+};
+
+// Admin API
+export const adminApi = {
+  listUsers: async (params: {
+    page?: number;
+    pageSize?: number;
+    search?: string;
+  }): Promise<PaginatedUsers> => {
+    const response = await api.get<PaginatedUsers>('/admin/users', {
+      params: {
+        page: params.page || 1,
+        page_size: params.pageSize || 10,
+        search: params.search || undefined,
+      },
+    });
+    return response.data;
+  },
+
+  getUser: async (id: string): Promise<AdminUserDetail> => {
+    const response = await api.get<AdminUserDetail>(`/admin/users/${id}`);
+    return response.data;
+  },
+
+  createUser: async (data: UserCreateData): Promise<AdminUser> => {
+    const response = await api.post<AdminUser>('/admin/users', data);
+    return response.data;
+  },
+
+  updateUser: async (id: string, data: UserUpdateData): Promise<AdminUser> => {
+    const response = await api.put<AdminUser>(`/admin/users/${id}`, data);
+    return response.data;
+  },
+
+  deleteUser: async (id: string): Promise<void> => {
+    await api.delete(`/admin/users/${id}`);
+  },
+
+  resetPassword: async (id: string, newPassword: string): Promise<void> => {
+    await api.post(`/admin/users/${id}/reset-password`, {
+      new_password: newPassword,
+    });
   },
 };
 

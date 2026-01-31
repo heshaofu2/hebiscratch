@@ -35,6 +35,14 @@ export function Navbar() {
               >
                 我的作品
               </Link>
+              {user?.role === 'admin' && (
+                <Link
+                  href="/admin/users"
+                  className="px-4 py-2 hover:bg-orange-600 rounded-lg transition"
+                >
+                  管理后台
+                </Link>
+              )}
               <div className="flex items-center gap-2">
                 <span className="text-sm">{user?.username}</span>
                 <button

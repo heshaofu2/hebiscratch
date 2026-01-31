@@ -24,6 +24,8 @@ class UserResponse(BaseModel):
     id: str = Field(..., alias="_id")
     username: str
     avatar: Optional[str] = None
+    role: str = "user"
+    isActive: bool = True
     createdAt: datetime
     updatedAt: datetime
 

@@ -2,6 +2,8 @@ export interface User {
   _id: string;
   username: string;
   avatar?: string;
+  role: string;
+  isActive: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -36,4 +38,40 @@ export interface AuthResponse {
 export interface ApiError {
   message: string;
   code?: string;
+}
+
+// Admin types
+export interface AdminUser {
+  _id: string;
+  username: string;
+  avatar?: string;
+  role: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface AdminUserDetail extends AdminUser {
+  projectCount: number;
+  updatedAt: string;
+}
+
+export interface PaginatedUsers {
+  items: AdminUser[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+export interface UserCreateData {
+  username: string;
+  password: string;
+  role?: string;
+  is_active?: boolean;
+}
+
+export interface UserUpdateData {
+  username?: string;
+  role?: string;
+  is_active?: boolean;
 }

@@ -11,6 +11,8 @@ class User(Document):
     username: Indexed(str, unique=True)
     password_hash: str
     avatar: Optional[str] = None
+    role: str = "user"  # 'user' | 'admin'
+    is_active: bool = True  # 账号是否启用
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -24,6 +26,8 @@ class User(Document):
             "_id": str(self.id),
             "username": self.username,
             "avatar": self.avatar,
+            "role": self.role,
+            "isActive": self.is_active,
             "createdAt": self.created_at.isoformat(),
             "updatedAt": self.updated_at.isoformat(),
         }
