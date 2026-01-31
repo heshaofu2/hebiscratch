@@ -4,6 +4,8 @@ import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth';
 import { useProjectsStore } from '@/store/projects';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import dynamic from 'next/dynamic';
 
 // 动态导入 Scratch 编辑器，禁用 SSR
@@ -103,37 +105,36 @@ export default function EditorPage() {
   return (
     <div className="h-[calc(100vh-64px)] flex flex-col bg-gray-100">
       {/* 工具栏 */}
-      <div className="h-12 bg-white border-b border-gray-200 flex items-center px-4 gap-4 shrink-0">
-        <input
+      <div className="h-12 bg-card border-b border-border flex items-center px-4 gap-4 shrink-0">
+        <Input
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          className="px-3 py-1 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+          className="w-48 text-foreground"
           placeholder="项目名称"
         />
-        <button
+        <Button
           onClick={() => {
-            // 触发保存，编辑器会响应这个事件并返回数据
             const event = new CustomEvent('scratch-save-request');
             window.dispatchEvent(event);
           }}
           disabled={isSaving}
-          className="px-4 py-1 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition disabled:opacity-50"
+          className="bg-orange-500 hover:bg-orange-600"
         >
           {isSaving ? '保存中...' : '保存'}
-        </button>
+        </Button>
         {lastSaved && (
-          <span className="text-sm text-gray-500">
+          <span className="text-sm text-muted-foreground">
             上次保存: {lastSaved.toLocaleTimeString('zh-CN')}
           </span>
         )}
         <div className="flex-1" />
-        <button
+        <Button
+          variant="secondary"
           onClick={() => router.push('/projects')}
-          className="px-4 py-1 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
         >
           返回
-        </button>
+        </Button>
       </div>
 
       {/* 编辑器区域 */}

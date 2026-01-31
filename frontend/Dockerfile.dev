@@ -1,8 +1,14 @@
 # Next.js 前端 Dockerfile（开发模式）
 FROM node:20-alpine
 
+# 使用阿里云 Alpine 源加速
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
+
 # 安装 git（用于克隆 scratch-gui）
 RUN apk add --no-cache git
+
+# 使用淘宝 npm 源
+RUN npm config set registry https://registry.npmmirror.com
 
 WORKDIR /app
 
