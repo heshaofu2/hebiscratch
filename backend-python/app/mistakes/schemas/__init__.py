@@ -4,6 +4,7 @@ from .mistake import (
     MistakeResponse,
     MistakeListResponse,
     MistakeStatsResponse,
+    AIExtractedQuestion,
     AIExtractResponse,
 )
 
@@ -13,5 +14,6 @@ __all__ = [
     "MistakeResponse",
     "MistakeListResponse",
     "MistakeStatsResponse",
+    "AIExtractedQuestion",
     "AIExtractResponse",
 ]

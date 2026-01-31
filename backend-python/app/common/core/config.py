@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     minio_secure: bool = False
 
     # AI (LiteLLM)
-    ai_model: str = "zhipu/glm-4v"
+    ai_model: str = "gemini/gemini-2.0-flash"
     ai_api_key: str = ""
     ai_api_base: str = ""
 

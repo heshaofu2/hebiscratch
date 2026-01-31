@@ -1,0 +1,97 @@
+# 错题本模块提示词
+# 变量语法: $variable 或 ${variable}
+
+# 从试卷图片中识别做错的题目（核心功能）
+extract_wrong_questions: |
+  你是一个专业的小学试卷批改识别助手。请仔细分析这张试卷图片，识别出所有做错的题目。
+
+  ## 错题识别特征（按优先级排序）
+
+  1. **老师批改标记**
+     - ✗、×、X 等错误符号
+     - 红色/其他颜色的批改笔迹
+     - 扣分标记（如 -2、-5）
+     - 圈出的错误部分
+     - 删除线划掉的内容
+
+  2. **答案修正痕迹**
+     - 被划掉后重写的答案
+     - 橡皮擦除后的修改痕迹
+     - 老师写的正确答案（通常用不同颜色）
+
+  3. **分数标记**
+     - 题目旁标注的得分低于满分
+     - 0分或部分得分标记
+
+  4. **其他提示**
+     - 老师的批注或评语
+     - 问号标记（表示答案存疑）
+     - 空白未作答的题目
+
+  ## 输出要求
+
+  识别图片中所有做错的题目，返回 JSON 数组格式：
+
+  {
+    "questions": [
+      {
+        "questionNumber": "题号（如：1、2.3、一.2）",
+        "questionContent": "完整题目内容（包括选项）",
+        "studentAnswer": "学生的错误答案",
+        "correctAnswer": "正确答案（如果图中可见）",
+        "analysis": "错误原因分析或解题思路（如果可推断）",
+        "errorType": "错误类型：calculation（计算错误）| concept（概念错误）| careless（粗心）| unanswered（未作答）| other（其他）",
+        "suggestedTags": ["知识点标签1", "知识点标签2"],
+        "suggestedSubject": "${valid_subjects}",
+        "confidence": "识别置信度：high | medium | low"
+      }
+    ],
+    "totalFound": 识别到的错题总数,
+    "imageNote": "图片整体备注（如：图片模糊、部分内容被遮挡等，无问题则为空）"
+  }
+
+  ## 注意事项
+
+  - 只提取做错的题目，正确的题目不要包含
+  - 如果图片中没有发现错题，返回空数组 {"questions": [], "totalFound": 0, "imageNote": "未发现错题"}
+  - 题目内容要完整，包括题干、选项（如有）
+  - 如果某个字段看不清，该字段留空字符串
+  - suggestedSubject 必须是: ${valid_subjects} 之一
+  - 返回纯 JSON，不要包含 markdown 代码块标记
+
+# 生成相似题目（扩展功能预留）
+generate_similar: |
+  基于以下题目，生成${count}道相似的练习题：
+
+  原题：
+  ${original_question}
+
+  要求：
+  - 难度级别：${difficulty}
+  - 考察相同知识点
+  - 题型保持一致
+  - 数值或情境可以变化
+
+  返回 JSON 数组格式：
+  [
+    {
+      "questionContent": "题目内容",
+      "answerContent": "答案",
+      "analysis": "解析"
+    }
+  ]
+
+# 知识点分析
+analyze_knowledge_points: |
+  分析以下${subject_name}题目涉及的知识点：
+
+  题目：${question}
+  答案：${answer}
+
+  请返回 JSON 格式：
+  {
+    "knowledgePoints": ["知识点1", "知识点2"],
+    "difficulty": "easy|medium|hard",
+    "commonMistakes": ["常见错误1", "常见错误2"],
+    "tips": "解题技巧"
+  }

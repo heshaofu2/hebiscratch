@@ -1,4 +1,4 @@
-"""AI 识别服务 - 使用 LiteLLM 提取题目内容"""
+"""AI 识别服务 - 使用 LiteLLM 从试卷图片中提取错题"""
 
 import base64
 import json
@@ -6,46 +6,89 @@ import logging
 from typing import Optional
 
 from app.common.core import get_settings
+from app.common.prompts import get_prompt_manager
 
 logger = logging.getLogger(__name__)
 
-# AI 提取的 prompt 模板
-EXTRACT_PROMPT = """请识别图片中的题目，并提取以下信息：
-1. 题目内容（完整题目文本，包括选项等）
-2. 正确答案（如果可见）
-3. 解析（如果可见）
-4. 推荐的知识点标签（1-3个，简短关键词）
-5. 推荐的学科分类
+# 有效的学科列表
+VALID_SUBJECTS = ["math", "chinese", "english", "physics", "chemistry", "biology", "other"]
 
-你必须返回纯 JSON 格式，不要有任何其他文字：
-{
-  "questionContent": "完整题目内容",
-  "answerContent": "正确答案（如无则为空字符串）",
-  "analysis": "解析内容（如无则为空字符串）",
-  "suggestedTags": ["标签1", "标签2"],
-  "suggestedSubject": "math|chinese|english|physics|chemistry|biology|other"
-}
+# 有效的错误类型
+VALID_ERROR_TYPES = ["calculation", "concept", "careless", "unanswered", "other"]
 
-注意：
-- 如果看不清某部分内容，该字段留空
-- suggestedSubject 必须是以上7个选项之一
-- 返回的必须是合法的 JSON，不要包含 markdown 代码块标记"""
+# 有效的置信度
+VALID_CONFIDENCE = ["high", "medium", "low"]
 
 
-async def extract_question_from_image(image_data: bytes) -> Optional[dict]:
-    """使用 AI 从图片中提取题目信息
+def _parse_json_response(content: str) -> dict:
+    """解析 AI 返回的 JSON 响应，处理各种格式问题"""
+    # 去除可能的 markdown 代码块
+    if "```json" in content:
+        content = content.split("```json")[1].split("```")[0]
+    elif "```" in content:
+        content = content.split("```")[1].split("```")[0]
+
+    return json.loads(content.strip())
+
+
+def _validate_question(question: dict) -> dict:
+    """验证并修正单个错题的字段"""
+    # 确保必要字段存在
+    defaults = {
+        "questionNumber": "",
+        "questionContent": "",
+        "studentAnswer": "",
+        "correctAnswer": "",
+        "analysis": "",
+        "errorType": "other",
+        "suggestedTags": [],
+        "suggestedSubject": "other",
+        "confidence": "medium",
+    }
+
+    for key, default_value in defaults.items():
+        if key not in question:
+            question[key] = default_value
+
+    # 验证枚举值
+    if question["suggestedSubject"] not in VALID_SUBJECTS:
+        question["suggestedSubject"] = "other"
+    if question["errorType"] not in VALID_ERROR_TYPES:
+        question["errorType"] = "other"
+    if question["confidence"] not in VALID_CONFIDENCE:
+        question["confidence"] = "medium"
+
+    # 确保 tags 是列表
+    if not isinstance(question["suggestedTags"], list):
+        question["suggestedTags"] = []
+
+    return question
+
+
+async def extract_wrong_questions(image_data: bytes) -> Optional[dict]:
+    """从试卷图片中识别所有做错的题目
 
     Args:
         image_data: 图片二进制数据
 
     Returns:
-        提取的信息字典，格式如下：
+        识别结果字典，格式如下：
         {
-            "questionContent": str,
-            "answerContent": str,
-            "analysis": str,
-            "suggestedTags": list[str],
-            "suggestedSubject": str,
+            "questions": [
+                {
+                    "questionNumber": str,
+                    "questionContent": str,
+                    "studentAnswer": str,
+                    "correctAnswer": str,
+                    "analysis": str,
+                    "errorType": str,
+                    "suggestedTags": list[str],
+                    "suggestedSubject": str,
+                    "confidence": str,
+                }
+            ],
+            "totalFound": int,
+            "imageNote": str,
         }
         失败则返回 None
     """
@@ -58,12 +101,19 @@ async def extract_question_from_image(image_data: bytes) -> Optional[dict]:
     try:
         import litellm
 
-        # 配置 API key
+        # 配置 API base（如果有）
         if settings.ai_api_base:
             litellm.api_base = settings.ai_api_base
 
         # 编码图片为 base64
         image_base64 = base64.b64encode(image_data).decode("utf-8")
+
+        # 从提示词管理器获取模板并替换变量
+        prompt_manager = get_prompt_manager()
+        prompt = prompt_manager.get(
+            "mistakes.extract_wrong_questions",
+            valid_subjects="|".join(VALID_SUBJECTS)
+        )
 
         # 调用 AI 模型
         response = litellm.completion(
@@ -75,7 +125,7 @@ async def extract_question_from_image(image_data: bytes) -> Optional[dict]:
                     "content": [
                         {
                             "type": "text",
-                            "text": EXTRACT_PROMPT,
+                            "text": prompt,
                         },
                         {
                             "type": "image_url",
@@ -86,32 +136,26 @@ async def extract_question_from_image(image_data: bytes) -> Optional[dict]:
                     ],
                 }
             ],
-            max_tokens=2000,
+            max_tokens=4000,  # 增加 token 限制以支持多题
         )
 
         # 解析响应
         content = response.choices[0].message.content
         logger.debug(f"AI response: {content}")
 
-        # 尝试解析 JSON
-        # 有些模型可能会返回 markdown 代码块
-        if "```json" in content:
-            content = content.split("```json")[1].split("```")[0]
-        elif "```" in content:
-            content = content.split("```")[1].split("```")[0]
+        result = _parse_json_response(content)
 
-        result = json.loads(content.strip())
+        # 验证结构
+        if "questions" not in result:
+            result["questions"] = []
+        if "totalFound" not in result:
+            result["totalFound"] = len(result["questions"])
+        if "imageNote" not in result:
+            result["imageNote"] = ""
 
-        # 验证必要字段
-        required_fields = ["questionContent", "answerContent", "analysis", "suggestedTags", "suggestedSubject"]
-        for field in required_fields:
-            if field not in result:
-                result[field] = "" if field != "suggestedTags" else []
-
-        # 验证 subject 值
-        valid_subjects = ["math", "chinese", "english", "physics", "chemistry", "biology", "other"]
-        if result["suggestedSubject"] not in valid_subjects:
-            result["suggestedSubject"] = "other"
+        # 验证每个题目
+        result["questions"] = [_validate_question(q) for q in result["questions"]]
+        result["totalFound"] = len(result["questions"])
 
         return result
 

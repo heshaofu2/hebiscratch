@@ -19,7 +19,7 @@ from app.mistakes.services import (
     save_mistake_image,
     get_mistake_image,
     delete_mistake_images,
-    extract_question_from_image,
+    extract_wrong_questions,
     generate_mistakes_pdf,
 )
 
@@ -257,7 +257,7 @@ async def get_image(mistake: OwnedMistake, index: int):
 
 @router.post("/{mistake_id}/extract", response_model=AIExtractResponse)
 async def extract_content(mistake: OwnedMistake):
-    """AI 识别提取图片内容"""
+    """AI 识别试卷图片中的错题（支持多题）"""
     if not mistake.image_paths:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -272,8 +272,8 @@ async def extract_content(mistake: OwnedMistake):
             detail="无法读取图片",
         )
 
-    # AI 识别
-    result = await extract_question_from_image(image_data)
+    # AI 识别错题
+    result = await extract_wrong_questions(image_data)
     if result is None:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

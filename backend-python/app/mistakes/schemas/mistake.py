@@ -87,11 +87,23 @@ class MistakeStatsResponse(BaseModel):
     bySubject: dict[str, int]
 
 
-class AIExtractResponse(BaseModel):
-    """AI 识别响应"""
+class AIExtractedQuestion(BaseModel):
+    """单个识别出的错题"""
 
+    questionNumber: str = ""
     questionContent: str
-    answerContent: str
-    analysis: str
-    suggestedTags: list[str]
-    suggestedSubject: str
+    studentAnswer: str = ""
+    correctAnswer: str = ""
+    analysis: str = ""
+    errorType: str = "other"
+    suggestedTags: list[str] = Field(default_factory=list)
+    suggestedSubject: str = "other"
+    confidence: str = "medium"
+
+
+class AIExtractResponse(BaseModel):
+    """AI 识别响应（支持多题，单题时 questions 长度为 1）"""
+
+    questions: list[AIExtractedQuestion]
+    totalFound: int
+    imageNote: str = ""
