@@ -28,6 +28,16 @@ async def list_projects(current_user: CurrentUser):
     return [project.to_list_response() for project in projects]
 
 
+@router.get("/check-name")
+async def check_project_name(title: str, current_user: CurrentUser):
+    """检查项目名称是否已存在"""
+    existing = await Project.find_one(
+        Project.owner.id == current_user.id,
+        Project.title == title,
+    )
+    return {"exists": existing is not None}
+
+
 @router.post("", response_model=ProjectResponse, status_code=status.HTTP_201_CREATED)
 async def create_project(data: ProjectCreate, current_user: CurrentUser):
     """创建新项目"""

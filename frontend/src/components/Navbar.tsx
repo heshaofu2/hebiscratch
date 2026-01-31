@@ -1,10 +1,13 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/auth';
+import { CreateProjectDialog } from '@/components/CreateProjectDialog';
 
 export function Navbar() {
   const { user, isAuthenticated, isLoading, logout } = useAuthStore();
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
 
   const handleLogout = async () => {
     await logout();
@@ -23,12 +26,16 @@ export function Navbar() {
             <div className="w-20 h-8 bg-orange-400 animate-pulse rounded" />
           ) : isAuthenticated ? (
             <>
-              <Link
-                href="/editor"
+              <button
+                onClick={() => setShowCreateDialog(true)}
                 className="px-4 py-2 bg-orange-600 hover:bg-orange-700 rounded-lg transition"
               >
                 创建项目
-              </Link>
+              </button>
+              <CreateProjectDialog
+                open={showCreateDialog}
+                onOpenChange={setShowCreateDialog}
+              />
               <Link
                 href="/projects"
                 className="px-4 py-2 hover:bg-orange-600 rounded-lg transition"

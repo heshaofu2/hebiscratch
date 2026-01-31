@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth';
 import { useProjectsStore } from '@/store/projects';
+import { CreateProjectDialog } from '@/components/CreateProjectDialog';
 import type { Project } from '@/types';
 
 export default function ProjectsPage() {
@@ -13,6 +14,7 @@ export default function ProjectsPage() {
   const { projects, isLoading, fetchProjects, deleteProject, shareProject, unshareProject } = useProjectsStore();
   const [sharingId, setSharingId] = useState<string | null>(null);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -63,15 +65,19 @@ export default function ProjectsPage() {
       <div className="max-w-6xl mx-auto px-4">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold text-gray-900">我的作品</h1>
-          <Link
-            href="/editor"
+          <button
+            onClick={() => setShowCreateDialog(true)}
             className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition flex items-center gap-2"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
             新建项目
-          </Link>
+          </button>
+          <CreateProjectDialog
+            open={showCreateDialog}
+            onOpenChange={setShowCreateDialog}
+          />
         </div>
 
         {projects.length === 0 ? (
@@ -83,15 +89,15 @@ export default function ProjectsPage() {
             </div>
             <h2 className="text-xl font-semibold text-gray-900 mb-2">还没有作品</h2>
             <p className="text-gray-600 mb-6">开始创建你的第一个 Scratch 项目吧！</p>
-            <Link
-              href="/editor"
+            <button
+              onClick={() => setShowCreateDialog(true)}
               className="px-6 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition inline-flex items-center gap-2"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
               创建项目
-            </Link>
+            </button>
           </div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">

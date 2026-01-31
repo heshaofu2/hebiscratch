@@ -74,6 +74,13 @@ export const projectsApi = {
     return response.data;
   },
 
+  checkName: async (title: string): Promise<boolean> => {
+    const response = await api.get<{ exists: boolean }>('/projects/check-name', {
+      params: { title },
+    });
+    return response.data.exists;
+  },
+
   get: async (id: string): Promise<Project> => {
     const response = await api.get<Project>(`/projects/${id}`);
     return response.data;

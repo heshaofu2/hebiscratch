@@ -27,7 +27,7 @@ export default function EditorPage() {
   const projectId = params?.id?.[0] as string | undefined;
 
   const { isAuthenticated, isLoading: authLoading } = useAuthStore();
-  const { currentProject, fetchProject, createProject, updateProject, setCurrentProject } = useProjectsStore();
+  const { currentProject, fetchProject, updateProject, setCurrentProject } = useProjectsStore();
 
   const [title, setTitle] = useState('未命名项目');
   const [isSaving, setIsSaving] = useState(false);
@@ -40,10 +40,14 @@ export default function EditorPage() {
       return;
     }
 
+    // 如果没有项目 ID，重定向到项目列表页面
+    if (!projectId && isAuthenticated) {
+      router.replace('/projects');
+      return;
+    }
+
     if (projectId && isAuthenticated) {
       fetchProject(projectId);
-    } else {
-      setCurrentProject(null);
     }
 
     return () => {
@@ -70,19 +74,13 @@ export default function EditorPage() {
 
   // 处理保存 - 接收 base64 编码的 sb3 数据
   const handleSave = useCallback(async (sb3Data: string) => {
-    if (isSaving) return;
+    if (isSaving || !currentProject) return;
 
     setIsSaving(true);
     try {
       // 存储 sb3 数据（base64 编码）
       const projectJson = { sb3: sb3Data };
-
-      if (currentProject) {
-        await updateProject(currentProject._id, { title, projectJson });
-      } else {
-        const newProject = await createProject({ title, projectJson });
-        router.replace(`/editor/${newProject._id}`);
-      }
+      await updateProject(currentProject._id, { title, projectJson });
       setLastSaved(new Date());
     } catch (err) {
       console.error('保存失败:', err);
@@ -90,7 +88,7 @@ export default function EditorPage() {
     } finally {
       setIsSaving(false);
     }
-  }, [isSaving, currentProject, title, updateProject, createProject, router]);
+  }, [isSaving, currentProject, title, updateProject]);
 
   if (authLoading) {
     return (
