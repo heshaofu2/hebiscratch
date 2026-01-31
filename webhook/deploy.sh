@@ -28,8 +28,8 @@ git pull origin main
 
 # 重新构建并启动
 log "Building and starting services..."
-docker-compose build
-docker-compose up -d
+docker compose build
+docker compose up -d
 
 # 清理旧镜像
 log "Cleaning up old images..."
