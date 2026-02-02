@@ -20,8 +20,12 @@ ARG SCRATCH_GUI_BRANCH=develop
 
 # 跳过 prepublish（需要访问 MIT 服务器下载 microbit hex 文件，国内网络慢）
 # 直接运行 webpack build
+# 注意：需要在 npm ci 后应用 scratch-storage 补丁，禁用 FetchWorkerTool
 RUN git clone --depth 1 --branch ${SCRATCH_GUI_BRANCH} ${SCRATCH_GUI_REPO} . && \
     npm ci --ignore-scripts && \
+    # 应用补丁：禁用 FetchWorkerTool（在 iframe sandbox 环境中无法正常工作）
+    sed -i 's/tools = \[new PublicFetchWorkerTool(), new FetchTool()\];/tools = [new FetchTool()]; \/\/ 私有化部署：禁用 FetchWorkerTool/g' \
+        node_modules/scratch-storage/dist/web/scratch-storage.js && \
     npm run build
 
 # ========== 阶段 2: 安装前端依赖 ==========
