@@ -131,6 +131,7 @@ export default function ProjectsPage() {
                   <div className="flex gap-2">
                     <Link
                       href={`/editor/${project._id}`}
+                      target="_blank"
                       className="flex-1 px-3 py-2 bg-orange-500 text-white text-sm text-center rounded-lg hover:bg-orange-600 transition"
                     >
                       编辑

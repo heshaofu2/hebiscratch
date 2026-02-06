@@ -24,6 +24,7 @@ export default function HomePage() {
             <div className="flex gap-4 justify-center">
               <Link
                 href="/editor"
+                target="_blank"
                 className="px-8 py-3 bg-orange-500 text-white text-lg font-semibold rounded-lg hover:bg-orange-600 transition shadow-lg"
               >
                 开始创作

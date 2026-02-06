@@ -52,9 +52,9 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
         projectJson: {}
       });
 
-      // 创建成功，跳转到编辑器页面
+      // 创建成功，在新标签页打开编辑器
       onOpenChange(false);
-      router.push(`/editor/${newProject._id}`);
+      window.open(`/editor/${newProject._id}`, '_blank');
     } catch {
       setError('创建项目时出错，请重试');
     } finally {
