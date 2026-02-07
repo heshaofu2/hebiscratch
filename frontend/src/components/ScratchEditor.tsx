@@ -17,7 +17,8 @@ interface ScratchMessage {
 
 export default function ScratchEditor({ projectData, onSave, onThumbnail, onProjectChange }: ScratchEditorProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const [isReady, setIsReady] = useState(false);
+  const isReadyRef = useRef(false); // 同步跟踪就绪状态，用于避免竞态条件
+  const [isReady, setIsReady] = useState(false); // 用于 UI 渲染
   const [isLoading, setIsLoading] = useState(true);
   const pendingLoadRef = useRef<string | null>(null);
   const loadedProjectRef = useRef<string | null>(null); // 跟踪已加载的项目数据，防止重复加载
@@ -45,6 +46,8 @@ export default function ScratchEditor({ projectData, onSave, onThumbnail, onProj
           break;
 
         case 'EDITOR_READY':
+          // 先同步设置 ref，确保后续 useEffect 中能立即检测到就绪状态
+          isReadyRef.current = true;
           setIsReady(true);
           // 如果有待加载的项目数据，现在加载
           if (pendingLoadRef.current) {
@@ -99,15 +102,16 @@ export default function ScratchEditor({ projectData, onSave, onThumbnail, onProj
       if (loadedProjectRef.current === projectData) {
         return;
       }
-      if (isReady) {
+      // 使用 ref 同步判断就绪状态，避免 state 更新延迟导致的竞态条件
+      if (isReadyRef.current) {
         loadedProjectRef.current = projectData;
         sendMessage('LOAD_PROJECT', projectData);
       } else {
-        // 保存待加载的数据
+        // 保存待加载的数据，等待 EDITOR_READY 时加载
         pendingLoadRef.current = projectData;
       }
     }
-  }, [projectData, isReady, sendMessage]);
+  }, [projectData, isReady, sendMessage]); // 保留 isReady 依赖以确保状态变化时重新执行
 
   // 监听保存请求事件
   useEffect(() => {
