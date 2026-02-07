@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth';
 import { useProjectsStore } from '@/store/projects';
@@ -55,22 +55,23 @@ export default function EditorPage() {
     };
   }, [authLoading, isAuthenticated, projectId, router, fetchProject, setCurrentProject]);
 
-  // 用于跟踪是否是首次加载项目
-  const [initialLoadDone, setInitialLoadDone] = useState(false);
+  // 用于跟踪是否是首次加载项目，使用 ref 配合项目 ID 来正确追踪
+  const loadedProjectIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (currentProject) {
       setTitle(currentProject.title);
-      // 只在首次加载时设置项目数据，保存后不重新加载（编辑器状态已是最新）
-      if (!initialLoadDone && currentProject.projectJson) {
+      // 只在首次加载该项目时设置项目数据，保存后不重新加载（编辑器状态已是最新）
+      // 使用项目 ID 来判断是否是新项目，而不是布尔标志
+      if (loadedProjectIdRef.current !== currentProject._id && currentProject.projectJson) {
         const json = currentProject.projectJson as { sb3?: string };
         if (json.sb3) {
           setProjectData(json.sb3);
-          setInitialLoadDone(true);
+          loadedProjectIdRef.current = currentProject._id;
         }
       }
     }
-  }, [currentProject, initialLoadDone]);
+  }, [currentProject]);
 
   // 处理保存 - 接收 base64 编码的 sb3 数据
   const handleSave = useCallback(async (sb3Data: string) => {
