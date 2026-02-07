@@ -169,7 +169,7 @@ export default function ScratchEditor({ projectData, onSave, onThumbnail, onProj
         src="/scratch/embedded.html"
         className="w-full h-full border-0"
         allow="microphone; camera"
-        sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals"
+        sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals allow-downloads"
       />
     </div>
   );
