@@ -4,6 +4,7 @@ import { useEffect, useRef, useCallback, useState } from 'react';
 
 interface ScratchEditorProps {
   projectData?: string; // base64 encoded sb3 or project JSON string
+  mode?: 'new' | 'edit'; // 编辑器模式：new=新建项目(显示默认猫咪)，edit=编辑现有项目(等待加载)
   onSave?: (projectData: string) => void;
   onThumbnail?: (thumbnailData: string) => void; // base64 encoded PNG
   onProjectChange?: () => void;
@@ -15,7 +16,9 @@ interface ScratchMessage {
   data: Record<string, unknown>;
 }
 
-export default function ScratchEditor({ projectData, onSave, onThumbnail, onProjectChange }: ScratchEditorProps) {
+export default function ScratchEditor({ projectData, mode, onSave, onThumbnail, onProjectChange }: ScratchEditorProps) {
+  // 计算编辑器模式：优先使用显式传入的 mode，否则根据 projectData 推断
+  const editorMode = mode ?? (projectData ? 'edit' : 'new');
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const isReadyRef = useRef(false); // 同步跟踪就绪状态，用于避免竞态条件
   const [isReady, setIsReady] = useState(false); // 用于 UI 渲染
@@ -166,7 +169,7 @@ export default function ScratchEditor({ projectData, onSave, onThumbnail, onProj
       )}
       <iframe
         ref={iframeRef}
-        src="/scratch/embedded.html"
+        src={`/scratch/embedded.html?mode=${editorMode}`}
         className="w-full h-full border-0"
         allow="microphone; camera"
         sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-modals allow-downloads"

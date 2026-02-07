@@ -140,6 +140,7 @@ export default function EditorPage() {
       <div className="flex-1 overflow-hidden">
         <ScratchEditor
           projectData={projectData}
+          mode={projectId ? 'edit' : 'new'}
           onSave={handleSave}
         />
       </div>
