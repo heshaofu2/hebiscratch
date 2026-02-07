@@ -20,6 +20,8 @@ class Project(Document):
 
     # MinIO 存储路径
     storage_path: Optional[str] = None
+    # 文件大小（字节）
+    file_size: int = 0
 
     thumbnail: Optional[str] = None
     is_public: bool = False

@@ -82,7 +82,10 @@ async def get_project_with_ownership(
     # 加载 owner 关联
     await project.fetch_link(Project.owner)
 
-    # 检查权限
+    # 检查权限：管理员可以访问任意项目
+    if current_user.role == "admin":
+        return project
+    # 普通用户只能访问自己的项目
     if project.owner.id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

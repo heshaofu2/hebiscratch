@@ -38,6 +38,7 @@ export default function AdminLayout({
 
   const navItems = [
     { href: '/admin/users', label: '用户管理' },
+    { href: '/admin/projects', label: '项目管理' },
   ];
 
   return (

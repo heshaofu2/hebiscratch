@@ -10,6 +10,8 @@ import type {
   PaginatedUsers,
   UserCreateData,
   UserUpdateData,
+  AdminProject,
+  PaginatedProjects,
 } from '@/types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
@@ -167,6 +169,29 @@ export const adminApi = {
     await api.post(`/admin/users/${id}/reset-password`, {
       new_password: newPassword,
     });
+  },
+
+  listProjects: async (params: {
+    page?: number;
+    pageSize?: number;
+    search?: string;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+  }): Promise<PaginatedProjects> => {
+    const response = await api.get<PaginatedProjects>('/admin/projects', {
+      params: {
+        page: params.page || 1,
+        page_size: params.pageSize || 10,
+        search: params.search || undefined,
+        sort_by: params.sortBy || 'updatedAt',
+        sort_order: params.sortOrder || 'desc',
+      },
+    });
+    return response.data;
+  },
+
+  deleteProject: async (id: string): Promise<void> => {
+    await api.delete(`/admin/projects/${id}`);
   },
 };
 

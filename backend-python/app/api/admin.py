@@ -8,6 +8,8 @@ from fastapi import APIRouter, HTTPException, Query, status
 from app.core.security import hash_password
 from app.models import Project, User
 from app.schemas.admin import (
+    AdminProjectItem,
+    PaginatedProjects,
     PaginatedUsers,
     PasswordReset,
     UserCreate,
@@ -15,6 +17,7 @@ from app.schemas.admin import (
     UserListItem,
     UserUpdate,
 )
+from app.services.project import delete_project_data
 
 from .deps import AdminUser
 
@@ -226,5 +229,103 @@ async def reset_password(_: AdminUser, user_id: str, data: PasswordReset):
     user.password_hash = hash_password(data.new_password)
     user.updated_at = datetime.now(timezone.utc)
     await user.save()
+
+    return None
+
+
+# ===== 项目管理 API =====
+
+
+@router.get("/projects", response_model=PaginatedProjects)
+async def list_projects(
+    _: AdminUser,
+    page: int = Query(1, ge=1, description="页码"),
+    page_size: int = Query(10, ge=1, le=100, description="每页数量"),
+    search: Optional[str] = Query(None, description="搜索项目标题"),
+    sort_by: str = Query("updatedAt", description="排序字段"),
+    sort_order: str = Query("desc", pattern="^(asc|desc)$", description="排序顺序"),
+):
+    """获取所有项目列表（分页、搜索、排序）"""
+    query = {}
+    if search:
+        query["title"] = {"$regex": search, "$options": "i"}
+
+    total = await Project.find(query).count()
+    total_pages = math.ceil(total / page_size) if total > 0 else 1
+
+    # 排序字段映射
+    sort_field_map = {
+        "title": Project.title,
+        "fileSize": Project.file_size,
+        "createdAt": Project.created_at,
+        "updatedAt": Project.updated_at,
+        "viewCount": Project.view_count,
+    }
+    sort_field = sort_field_map.get(sort_by, Project.updated_at)
+    if sort_order == "desc":
+        sort_field = -sort_field
+
+    projects = (
+        await Project.find(query)
+        .sort(sort_field)
+        .skip((page - 1) * page_size)
+        .limit(page_size)
+        .to_list()
+    )
+
+    # 批量获取用户信息
+    items = []
+    for project in projects:
+        await project.fetch_link(Project.owner)
+        owner_name = project.owner.username if project.owner else "未知用户"
+        owner_id = str(project.owner.id) if project.owner else ""
+        items.append(
+            AdminProjectItem(
+                _id=str(project.id),
+                title=project.title,
+                description=project.description,
+                thumbnail=project.thumbnail,
+                fileSize=project.file_size,
+                isPublic=project.is_public,
+                viewCount=project.view_count,
+                ownerId=owner_id,
+                ownerName=owner_name,
+                createdAt=project.created_at,
+                updatedAt=project.updated_at,
+            )
+        )
+
+    return PaginatedProjects(
+        items=items,
+        total=total,
+        page=page,
+        pageSize=page_size,
+        totalPages=total_pages,
+    )
+
+
+@router.delete("/projects/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_project(_: AdminUser, project_id: str):
+    """删除项目"""
+    try:
+        obj_id = PydanticObjectId(project_id)
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="无效的项目 ID",
+        )
+
+    project = await Project.get(obj_id)
+    if not project:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="项目不存在",
+        )
+
+    # 删除 MinIO 中的项目数据
+    await delete_project_data(project)
+
+    # 删除项目记录
+    await project.delete()
 
     return None

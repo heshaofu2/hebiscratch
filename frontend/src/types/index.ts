@@ -75,3 +75,26 @@ export interface UserUpdateData {
   role?: string;
   is_active?: boolean;
 }
+
+// Admin Project types
+export interface AdminProject {
+  _id: string;
+  title: string;
+  description?: string;
+  thumbnail?: string;
+  fileSize: number;
+  isPublic: boolean;
+  viewCount: number;
+  ownerId: string;
+  ownerName: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PaginatedProjects {
+  items: AdminProject[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}

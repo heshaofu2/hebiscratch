@@ -50,6 +50,7 @@ async def save_project_data(
     )
 
     project.storage_path = object_name
+    project.file_size = len(file_data)
     logger.info(f"Project {project.id}: stored in MinIO ({len(file_data)} bytes)")
 
 

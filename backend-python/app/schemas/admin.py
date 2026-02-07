@@ -68,3 +68,35 @@ class PaginatedUsers(BaseModel):
 
     class Config:
         populate_by_name = True
+
+
+class AdminProjectItem(BaseModel):
+    """管理员项目列表项"""
+
+    id: str = Field(..., alias="_id")
+    title: str
+    description: Optional[str] = None
+    thumbnail: Optional[str] = None
+    file_size: int = Field(..., alias="fileSize")
+    is_public: bool = Field(..., alias="isPublic")
+    view_count: int = Field(..., alias="viewCount")
+    owner_id: str = Field(..., alias="ownerId")
+    owner_name: str = Field(..., alias="ownerName")
+    created_at: datetime = Field(..., alias="createdAt")
+    updated_at: datetime = Field(..., alias="updatedAt")
+
+    class Config:
+        populate_by_name = True
+
+
+class PaginatedProjects(BaseModel):
+    """分页项目列表响应"""
+
+    items: list[AdminProjectItem]
+    total: int
+    page: int
+    page_size: int = Field(..., alias="pageSize")
+    total_pages: int = Field(..., alias="totalPages")
+
+    class Config:
+        populate_by_name = True
