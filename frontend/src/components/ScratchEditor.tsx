@@ -49,13 +49,11 @@ export default function ScratchEditor({ projectData, onSave, onThumbnail, onProj
           // 先同步设置 ref，确保后续 useEffect 中能立即检测到就绪状态
           isReadyRef.current = true;
           setIsReady(true);
-          // 如果有待加载的项目数据，现在加载
-          if (pendingLoadRef.current) {
-            const dataToLoad = pendingLoadRef.current;
+          // 如果有待加载的项目数据，立即加载
+          if (pendingLoadRef.current && loadedProjectRef.current !== pendingLoadRef.current) {
+            loadedProjectRef.current = pendingLoadRef.current;
+            sendMessage('LOAD_PROJECT', pendingLoadRef.current);
             pendingLoadRef.current = null;
-            // 标记为已加载，防止 useEffect 重复发送
-            loadedProjectRef.current = dataToLoad;
-            sendMessage('LOAD_PROJECT', dataToLoad);
           }
           break;
 
