@@ -31,8 +31,9 @@ log "Building and starting services..."
 docker compose build
 docker compose up -d
 
-# 清理旧镜像
-log "Cleaning up old images..."
+# 清理旧镜像和构建缓存
+log "Cleaning up old images and build cache..."
 docker image prune -f
+docker builder prune -f --filter "until=24h"
 
 log "=== Deployment completed ==="
