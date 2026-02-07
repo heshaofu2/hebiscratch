@@ -93,7 +93,7 @@ export default function EditorPage() {
 
   if (authLoading) {
     return (
-      <div className="h-[calc(100vh-64px)] flex items-center justify-center">
+      <div className="h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-4 border-orange-500 border-t-transparent"></div>
       </div>
     );
@@ -102,7 +102,7 @@ export default function EditorPage() {
   // projectData 已经是 sb3 data URL 格式，直接使用
 
   return (
-    <div className="h-[calc(100vh-64px)] flex flex-col bg-gray-100">
+    <div className="h-screen flex flex-col bg-gray-100">
       {/* 工具栏 */}
       <div className="h-12 bg-card border-b border-border flex items-center px-4 gap-4 shrink-0">
         <Input

@@ -2,12 +2,19 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/auth';
 import { CreateProjectDialog } from '@/components/CreateProjectDialog';
 
 export function Navbar() {
+  const pathname = usePathname();
   const { user, isAuthenticated, isLoading, logout } = useAuthStore();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+
+  // 编辑器页面不显示导航栏
+  if (pathname?.startsWith('/editor')) {
+    return null;
+  }
 
   const handleLogout = async () => {
     await logout();
