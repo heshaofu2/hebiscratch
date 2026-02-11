@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
 import {
   Dialog,
   DialogContent,
@@ -12,7 +11,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { projectsApi } from '@/lib/api';
-import { useProjectsStore } from '@/store/projects';
 
 interface CreateProjectDialogProps {
   open: boolean;
@@ -20,11 +18,9 @@ interface CreateProjectDialogProps {
 }
 
 export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogProps) {
-  const router = useRouter();
-  const { createProject } = useProjectsStore();
   const [title, setTitle] = useState('');
   const [error, setError] = useState('');
-  const [isCreating, setIsCreating] = useState(false);
+  const [isChecking, setIsChecking] = useState(false);
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,32 +31,27 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
       return;
     }
 
-    setIsCreating(true);
+    setIsChecking(true);
     setError('');
 
     try {
-      // 先检查是否存在同名项目
+      // 检查是否存在同名项目
       const exists = await projectsApi.checkName(trimmedTitle);
       if (exists) {
         setError('已存在同名项目，请使用其他名称');
         return;
       }
 
-      // 创建项目（空项目，不含 projectJson）
-      const newProject = await createProject({
-        title: trimmedTitle,
-        projectJson: {}
-      });
-
-      // 创建成功，在新标签页打开编辑器
+      // 不创建 DB 记录，直接打开编辑器，将标题通过 URL 参数传递
+      // 项目会在用户首次保存时才创建
       onOpenChange(false);
-      window.open(`/editor/${newProject._id}`, '_blank');
+      window.open(`/editor?title=${encodeURIComponent(trimmedTitle)}`, '_blank');
     } catch {
-      setError('创建项目时出错，请重试');
+      setError('检查项目名称时出错，请重试');
     } finally {
-      setIsCreating(false);
+      setIsChecking(false);
     }
-  }, [title, router, onOpenChange, createProject]);
+  }, [title, onOpenChange]);
 
   const handleOpenChange = useCallback((newOpen: boolean) => {
     if (!newOpen) {
@@ -103,16 +94,16 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
               type="button"
               variant="outline"
               onClick={() => handleOpenChange(false)}
-              disabled={isCreating}
+              disabled={isChecking}
             >
               取消
             </Button>
             <Button
               type="submit"
-              disabled={isCreating || !title.trim()}
+              disabled={isChecking || !title.trim()}
               className="bg-orange-500 hover:bg-orange-600"
             >
-              {isCreating ? '创建中...' : '确认'}
+              {isChecking ? '检查中...' : '确认'}
             </Button>
           </DialogFooter>
         </form>

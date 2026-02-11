@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/store/auth';
 import { useProjectsStore } from '@/store/projects';
 import { Input } from '@/components/ui/input';
@@ -24,15 +24,28 @@ const ScratchEditor = dynamic(() => import('@/components/ScratchEditor'), {
 export default function EditorPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const projectId = params?.id?.[0] as string | undefined;
 
   const { isAuthenticated, isLoading: authLoading } = useAuthStore();
-  const { currentProject, fetchProject, updateProject, setCurrentProject } = useProjectsStore();
+  const {
+    currentProject,
+    fetchProject,
+    createProject,
+    updateProject,
+    setCurrentProject,
+    error: projectError,
+  } = useProjectsStore();
 
-  const [title, setTitle] = useState('未命名项目');
+  // 新建模式：从 URL 参数获取标题；编辑模式：从项目数据获取标题
+  const initialTitle = searchParams?.get('title') || '未命名项目';
+  const [title, setTitle] = useState(initialTitle);
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [projectData, setProjectData] = useState<string | undefined>(undefined);
+
+  // 跟踪当前项目 ID（新建项目首次保存后会从 undefined 变为实际 ID）
+  const [currentProjectId, setCurrentProjectId] = useState<string | undefined>(projectId);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -40,12 +53,7 @@ export default function EditorPage() {
       return;
     }
 
-    // 如果没有项目 ID，重定向到项目列表页面
-    if (!projectId && isAuthenticated) {
-      router.replace('/projects');
-      return;
-    }
-
+    // 仅编辑模式（有 projectId）才需要加载项目
     if (projectId && isAuthenticated) {
       fetchProject(projectId);
     }
@@ -62,7 +70,6 @@ export default function EditorPage() {
     if (currentProject) {
       setTitle(currentProject.title);
       // 只在首次加载该项目时设置项目数据，保存后不重新加载（编辑器状态已是最新）
-      // 使用项目 ID 来判断是否是新项目，而不是布尔标志
       if (loadedProjectIdRef.current !== currentProject._id && currentProject.projectJson) {
         const json = currentProject.projectJson as { sb3?: string };
         if (json.sb3) {
@@ -73,15 +80,23 @@ export default function EditorPage() {
     }
   }, [currentProject]);
 
-  // 处理保存 - 接收 base64 编码的 sb3 数据
+  // 处理保存 — 首次保存时创建项目，后续保存时更新
   const handleSave = useCallback(async (sb3Data: string) => {
-    if (isSaving || !currentProject) return;
+    if (isSaving) return;
 
     setIsSaving(true);
     try {
-      // 存储 sb3 数据（base64 编码）
       const projectJson = { sb3: sb3Data };
-      await updateProject(currentProject._id, { title, projectJson });
+      if (currentProjectId) {
+        // 已有项目 → 更新
+        await updateProject(currentProjectId, { title, projectJson });
+      } else {
+        // 新项目 → 首次保存时创建 DB 记录
+        const newProject = await createProject({ title, projectJson });
+        setCurrentProjectId(newProject._id);
+        // 更新 URL（不刷新页面），后续保存走更新逻辑
+        window.history.replaceState(null, '', `/editor/${newProject._id}`);
+      }
       setLastSaved(new Date());
     } catch (err) {
       console.error('保存失败:', err);
@@ -89,7 +104,7 @@ export default function EditorPage() {
     } finally {
       setIsSaving(false);
     }
-  }, [isSaving, currentProject, title, updateProject]);
+  }, [isSaving, currentProjectId, title, createProject, updateProject]);
 
   if (authLoading) {
     return (
@@ -99,7 +114,20 @@ export default function EditorPage() {
     );
   }
 
-  // projectData 已经是 sb3 data URL 格式，直接使用
+  // 编辑模式下：项目加载失败时显示错误提示
+  if (projectId && projectError && !currentProject) {
+    return (
+      <div className="h-screen flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <p className="text-red-500 text-lg">项目加载失败</p>
+          <p className="text-gray-500 text-sm">{projectError}</p>
+          <Button onClick={() => router.push('/projects')} variant="secondary">
+            返回项目列表
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen flex flex-col bg-gray-100">
