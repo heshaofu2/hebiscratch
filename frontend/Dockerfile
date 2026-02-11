@@ -4,46 +4,31 @@ FROM node:20-alpine AS base
 # 使用阿里云 Alpine 源加速
 RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
 
-# 安装 git（用于克隆 scratch-gui）
-RUN apk add --no-cache git
-
 # 使用淘宝 npm 源
 RUN npm config set registry https://registry.npmmirror.com
 
-# ========== 阶段 1: 构建 scratch-gui ==========
-FROM base AS scratch-builder
-WORKDIR /scratch-gui
+# ========== 注意 ==========
+# scratch-gui 构建产物需要预先放在 public/scratch/ 目录中
+# 本地构建方法：
+#   cd scratch-gui-build && npm run build
+#   cp -r build/* ../frontend/public/scratch/
+# 或使用脚本：./build-scratch.sh pull
+# ===========================
 
-# 克隆 scratch-gui fork 并构建
-ARG SCRATCH_GUI_REPO=https://github.com/heshaofu2/scratch-gui.git
-ARG SCRATCH_GUI_BRANCH=develop
-
-# 跳过 prepublish（需要访问 MIT 服务器下载 microbit hex 文件，国内网络慢）
-# 直接运行 webpack build
-# 注意：需要在 npm ci 后应用 scratch-storage 补丁，禁用 FetchWorkerTool
-RUN git clone --depth 1 --branch ${SCRATCH_GUI_BRANCH} ${SCRATCH_GUI_REPO} . && \
-    npm ci --ignore-scripts && \
-    # 应用补丁：禁用 FetchWorkerTool（在 iframe sandbox 环境中无法正常工作）
-    sed -i 's/tools = \[new PublicFetchWorkerTool(), new FetchTool()\];/tools = [new FetchTool()]; \/\/ 私有化部署：禁用 FetchWorkerTool/g' \
-        node_modules/scratch-storage/dist/web/scratch-storage.js && \
-    npm run build
-
-# ========== 阶段 2: 安装前端依赖 ==========
+# ========== 阶段 1: 安装前端依赖 ==========
 FROM base AS deps
 WORKDIR /app
 
 COPY package.json package-lock.json* ./
 RUN npm ci
 
-# ========== 阶段 3: 构建前端 ==========
+# ========== 阶段 2: 构建前端 ==========
 FROM base AS builder
 WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
+# 复制所有文件（包括 public/scratch/ 中的 scratch-gui 构建产物）
 COPY . .
-
-# 复制 scratch-gui 构建产物
-COPY --from=scratch-builder /scratch-gui/build ./public/scratch
 
 # 设置环境变量
 ENV NEXT_TELEMETRY_DISABLED=1
