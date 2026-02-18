@@ -25,6 +25,8 @@ cd "$PROJECT_DIR"
 PULL_TIMEOUT=600        # 镜像拉取超时时间（秒）
 MAX_RETRIES=5           # 最大重试次数
 RETRY_DELAY=10          # 重试间隔（秒）
+DISK_THRESHOLD=80       # 磁盘使用率警告阈值（%）
+DISK_CRITICAL=90        # 磁盘使用率临界阈值（%），超过则强制清理
 
 # 打印带颜色的消息
 print_info() {
@@ -48,6 +50,79 @@ check_docker() {
     if ! docker info > /dev/null 2>&1; then
         print_error "Docker 未运行，请先启动 Docker"
         exit 1
+    fi
+}
+
+# 获取磁盘使用率（返回整数百分比）
+get_disk_usage() {
+    df -h / | awk 'NR==2 {gsub(/%/,""); print $5}'
+}
+
+# 清理 Docker 缓存和悬空镜像
+cleanup_docker() {
+    local force=${1:-false}
+
+    print_info "正在检查 Docker 磁盘占用..."
+
+    # 获取可回收空间
+    local build_cache_size=$(docker system df --format '{{.Reclaimable}}' 2>/dev/null | head -4 | tail -1)
+    local image_reclaimable=$(docker system df --format '{{.Reclaimable}}' 2>/dev/null | head -1)
+
+    print_info "Build Cache 可回收: $build_cache_size"
+    print_info "悬空镜像可回收: $image_reclaimable"
+
+    if [ "$force" = true ]; then
+        print_warning "磁盘空间紧张，执行强制清理..."
+    else
+        print_info "执行常规清理..."
+    fi
+
+    # 清理 Build Cache
+    print_info "清理 Docker Build Cache..."
+    docker builder prune -af > /dev/null 2>&1 || true
+
+    # 清理悬空镜像
+    print_info "清理悬空镜像..."
+    docker image prune -af > /dev/null 2>&1 || true
+
+    # 如果是强制清理，还清理未使用的网络和容器
+    if [ "$force" = true ]; then
+        print_info "清理停止的容器..."
+        docker container prune -f > /dev/null 2>&1 || true
+        print_info "清理未使用的网络..."
+        docker network prune -f > /dev/null 2>&1 || true
+    fi
+
+    print_success "Docker 清理完成"
+}
+
+# 检查磁盘空间并在必要时清理
+check_disk_space() {
+    local usage=$(get_disk_usage)
+
+    print_info "当前磁盘使用率: ${usage}%"
+
+    if [ "$usage" -ge "$DISK_CRITICAL" ]; then
+        print_error "磁盘使用率已达 ${usage}%，超过临界值 ${DISK_CRITICAL}%！"
+        print_warning "正在执行强制清理..."
+        cleanup_docker true
+
+        # 重新检查
+        usage=$(get_disk_usage)
+        if [ "$usage" -ge "$DISK_CRITICAL" ]; then
+            print_error "清理后磁盘使用率仍为 ${usage}%，请手动清理磁盘空间"
+            print_info "建议检查: du -sh /var/lib/docker/* | sort -rh | head -10"
+            exit 1
+        fi
+        print_success "清理后磁盘使用率: ${usage}%"
+
+    elif [ "$usage" -ge "$DISK_THRESHOLD" ]; then
+        print_warning "磁盘使用率已达 ${usage}%，接近阈值 ${DISK_THRESHOLD}%"
+        print_info "正在执行预防性清理..."
+        cleanup_docker false
+
+        usage=$(get_disk_usage)
+        print_success "清理后磁盘使用率: ${usage}%"
     fi
 }
 
@@ -111,6 +186,9 @@ check_scratch_gui() {
 start_dev() {
     print_info "启动开发模式..."
 
+    # 检查磁盘空间
+    check_disk_space
+
     # 检查 scratch-gui
     check_scratch_gui
 
@@ -149,6 +227,9 @@ start_dev() {
 # 启动生产模式
 start_prod() {
     print_info "启动生产模式..."
+
+    # 检查磁盘空间
+    check_disk_space
 
     # 检查 scratch-gui
     check_scratch_gui
@@ -246,6 +327,32 @@ show_status() {
     fi
 }
 
+# 手动清理 Docker
+do_clean() {
+    print_info "Docker 清理工具"
+    echo ""
+
+    # 显示当前状态
+    local usage=$(get_disk_usage)
+    print_info "当前磁盘使用率: ${usage}%"
+    echo ""
+
+    print_info "Docker 磁盘占用:"
+    docker system df
+    echo ""
+
+    # 执行清理
+    cleanup_docker true
+
+    # 显示清理后状态
+    echo ""
+    usage=$(get_disk_usage)
+    print_success "清理完成！当前磁盘使用率: ${usage}%"
+    echo ""
+    print_info "清理后 Docker 磁盘占用:"
+    docker system df
+}
+
 # 显示帮助
 show_help() {
     echo ""
@@ -259,6 +366,7 @@ show_help() {
     echo "  stop    停止所有服务"
     echo "  logs    查看服务日志"
     echo "  status  查看服务状态"
+    echo "  clean   清理 Docker 缓存和悬空镜像"
     echo "  help    显示此帮助信息"
     echo ""
 }
@@ -281,6 +389,9 @@ case "${1:-}" in
         ;;
     status)
         show_status
+        ;;
+    clean)
+        do_clean
         ;;
     help|--help|-h)
         show_help
