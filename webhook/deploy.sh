@@ -26,10 +26,13 @@ cd $DEPLOY_DIR
 log "Pulling latest code..."
 git pull origin main
 
-# 重新构建并启动
-log "Building and starting services..."
+# 重新构建所有镜像
+log "Building images..."
 docker compose build
-docker compose up -d
+
+# 先启动/重启除 webhook 外的服务（避免 webhook 自我重建导致脚本中断）
+log "Restarting services (excluding webhook)..."
+docker compose up -d --no-deps frontend backend nginx
 
 # 清理旧镜像和构建缓存
 log "Cleaning up old images and build cache..."
@@ -37,3 +40,6 @@ docker image prune -f
 docker builder prune -f --filter "until=24h"
 
 log "=== Deployment completed ==="
+
+# 最后重启 webhook 自身（此操作会终止当前脚本，放在最后确保其他工作已完成）
+docker compose up -d --no-deps webhook
