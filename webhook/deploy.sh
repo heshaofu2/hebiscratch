@@ -22,24 +22,79 @@ log "=== Starting deployment ==="
 
 cd $DEPLOY_DIR
 
+# 记录当前 commit，用于后续 diff
+OLD_HEAD=$(git rev-parse HEAD)
+
 # 拉取最新代码
 log "Pulling latest code..."
 git pull origin main
 
-# 重新构建所有镜像
-log "Building images..."
-docker compose build
+NEW_HEAD=$(git rev-parse HEAD)
 
-# 先启动/重启除 webhook 外的服务（避免 webhook 自我重建导致脚本中断）
-log "Restarting services (excluding webhook)..."
-docker compose up -d --no-deps frontend backend nginx
+# 检测变更的文件，判断需要重建哪些服务
+CHANGED_FILES=$(git diff --name-only "$OLD_HEAD" "$NEW_HEAD")
+log "Changed files: $(echo $CHANGED_FILES | tr '\n' ' ')"
 
-# 清理旧镜像和构建缓存
-log "Cleaning up old images and build cache..."
-docker image prune -f
-docker builder prune -f --filter "until=24h"
+BUILD_FRONTEND=false
+BUILD_BACKEND=false
+BUILD_WEBHOOK=false
+RESTART_NGINX=false
+
+for file in $CHANGED_FILES; do
+    case "$file" in
+        frontend/*)   BUILD_FRONTEND=true ;;
+        backend-python/*) BUILD_BACKEND=true ;;
+        webhook/*)    BUILD_WEBHOOK=true ;;
+        nginx/*)      RESTART_NGINX=true ;;
+        docker-compose.yml) BUILD_FRONTEND=true; BUILD_BACKEND=true; BUILD_WEBHOOK=true; RESTART_NGINX=true ;;
+    esac
+done
+
+# 收集需要构建和重启的服务
+SERVICES_TO_BUILD=""
+SERVICES_TO_RESTART=""
+
+if [ "$BUILD_FRONTEND" = true ]; then
+    SERVICES_TO_BUILD="$SERVICES_TO_BUILD frontend"
+    SERVICES_TO_RESTART="$SERVICES_TO_RESTART frontend"
+fi
+if [ "$BUILD_BACKEND" = true ]; then
+    SERVICES_TO_BUILD="$SERVICES_TO_BUILD backend"
+    SERVICES_TO_RESTART="$SERVICES_TO_RESTART backend"
+fi
+if [ "$BUILD_WEBHOOK" = true ]; then
+    SERVICES_TO_BUILD="$SERVICES_TO_BUILD webhook"
+fi
+if [ "$RESTART_NGINX" = true ]; then
+    SERVICES_TO_RESTART="$SERVICES_TO_RESTART nginx"
+fi
+
+# 执行构建
+if [ -n "$SERVICES_TO_BUILD" ]; then
+    log "Building:$SERVICES_TO_BUILD"
+    docker compose build $SERVICES_TO_BUILD
+else
+    log "No services need rebuilding, skipping build"
+fi
+
+# 重启服务（排除 webhook）
+if [ -n "$SERVICES_TO_RESTART" ]; then
+    log "Restarting:$SERVICES_TO_RESTART"
+    docker compose up -d --no-deps $SERVICES_TO_RESTART
+else
+    log "No services need restarting"
+fi
+
+# 清理旧镜像
+if [ -n "$SERVICES_TO_BUILD" ]; then
+    log "Cleaning up old images..."
+    docker image prune -f
+fi
 
 log "=== Deployment completed ==="
 
 # 最后重启 webhook 自身（此操作会终止当前脚本，放在最后确保其他工作已完成）
-docker compose up -d --no-deps webhook
+if [ "$BUILD_WEBHOOK" = true ]; then
+    log "Restarting webhook (script will be terminated)..."
+    docker compose up -d --no-deps webhook
+fi
