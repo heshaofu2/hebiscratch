@@ -20,6 +20,14 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_expire_days: int = 7
 
+    # AI / LLM
+    ai_model: str = "gemini/gemini-3-pro-preview"
+    ai_api_key: str = ""
+    ai_api_base: str = ""
+    ai_max_tokens: int = 4096
+    ai_temperature: float = 0.3
+    prompts_dir: str = "prompts"
+
     # MinIO
     minio_endpoint: str = "localhost:9000"
     minio_access_key: str = "minioadmin"
@@ -28,7 +36,7 @@ class Settings(BaseSettings):
     minio_secure: bool = False
 
     class Config:
-        env_file = ".env"
+        env_file = (".env", "../.env")
         env_file_encoding = "utf-8"
         extra = "ignore"
 

@@ -5,7 +5,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.core.security import decode_access_token
-from app.models import User, Project
+from app.models import User, Project, MistakeEntry
 
 security = HTTPBearer()
 
@@ -97,3 +97,40 @@ async def get_project_with_ownership(
 
 # 项目所有权依赖注入类型
 OwnedProject = Annotated[Project, Depends(get_project_with_ownership)]
+
+
+async def get_mistake_with_ownership(
+    mistake_id: str,
+    current_user: CurrentUser,
+) -> MistakeEntry:
+    """获取错题并验证所有权"""
+    try:
+        obj_id = PydanticObjectId(mistake_id)
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="无效的错题 ID",
+        )
+
+    mistake = await MistakeEntry.get(obj_id)
+
+    if mistake is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="错题不存在",
+        )
+
+    await mistake.fetch_link(MistakeEntry.owner)
+
+    if current_user.role == "admin":
+        return mistake
+    if mistake.owner.id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="无权访问该错题",
+        )
+
+    return mistake
+
+
+OwnedMistake = Annotated[MistakeEntry, Depends(get_mistake_with_ownership)]

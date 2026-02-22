@@ -98,3 +98,100 @@ export interface PaginatedProjects {
   pageSize: number;
   totalPages: number;
 }
+
+// ── 错题本类型 ──────────────────────────────────
+
+export const SUBJECTS = [
+  '语文', '数学', '英语', '物理', '化学',
+  '生物', '历史', '地理', '政治', '其他',
+] as const;
+
+export type Subject = (typeof SUBJECTS)[number];
+
+export interface MistakeEntry {
+  _id: string;
+  subject: string;
+  question: string;
+  wrongAnswer: string;
+  correctAnswer: string;
+  analysis?: string;
+  source: 'manual' | 'image';
+  sourceImagePath?: string;
+  sourceImageUrl?: string;
+  tags: string[];
+  isMastered: boolean;
+  reviewCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MistakeListItem {
+  _id: string;
+  subject: string;
+  question: string;
+  isMastered: boolean;
+  reviewCount: number;
+  source: string;
+  tags: string[];
+  createdAt: string;
+}
+
+export interface MistakeCreateData {
+  subject: string;
+  question: string;
+  wrongAnswer?: string;
+  correctAnswer?: string;
+  analysis?: string;
+  tags?: string[];
+}
+
+export interface MistakeUpdateData {
+  subject?: string;
+  question?: string;
+  wrongAnswer?: string;
+  correctAnswer?: string;
+  analysis?: string;
+  tags?: string[];
+  isMastered?: boolean;
+}
+
+export interface MistakeBatchCreateData {
+  items: {
+    subject: string;
+    question: string;
+    wrongAnswer?: string;
+    correctAnswer?: string;
+    analysis?: string;
+    sourceImagePath?: string;
+  }[];
+  sourceImagePath?: string;
+}
+
+export interface BBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface RecognizedQuestion {
+  index: number;
+  question: string;
+  wrongAnswer: string;
+  correctAnswer: string;
+  analysis: string;
+  subjectGuess: string;
+  bbox: BBox;
+}
+
+export interface ImageRecognitionResult {
+  imagePath: string;
+  questions: RecognizedQuestion[];
+}
+
+export interface MistakeStats {
+  total: number;
+  mastered: number;
+  unmastered: number;
+  subjects: Record<string, number>;
+}

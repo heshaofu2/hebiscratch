@@ -12,6 +12,13 @@ import type {
   UserUpdateData,
   AdminProject,
   PaginatedProjects,
+  MistakeEntry,
+  MistakeListItem,
+  MistakeCreateData,
+  MistakeUpdateData,
+  MistakeBatchCreateData,
+  ImageRecognitionResult,
+  MistakeStats,
 } from '@/types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
@@ -192,6 +199,67 @@ export const adminApi = {
 
   deleteProject: async (id: string): Promise<void> => {
     await api.delete(`/admin/projects/${id}`);
+  },
+};
+
+// Mistakes API
+export const mistakesApi = {
+  list: async (params?: {
+    subject?: string;
+    mastered?: boolean;
+    search?: string;
+  }): Promise<MistakeListItem[]> => {
+    const response = await api.get<MistakeListItem[]>('/mistakes', { params });
+    return response.data;
+  },
+
+  get: async (id: string): Promise<MistakeEntry> => {
+    const response = await api.get<MistakeEntry>(`/mistakes/${id}`);
+    return response.data;
+  },
+
+  create: async (data: MistakeCreateData): Promise<MistakeEntry> => {
+    const response = await api.post<MistakeEntry>('/mistakes', data);
+    return response.data;
+  },
+
+  createBatch: async (data: MistakeBatchCreateData): Promise<MistakeEntry[]> => {
+    const response = await api.post<MistakeEntry[]>('/mistakes/batch', data);
+    return response.data;
+  },
+
+  update: async (id: string, data: MistakeUpdateData): Promise<MistakeEntry> => {
+    const response = await api.put<MistakeEntry>(`/mistakes/${id}`, data);
+    return response.data;
+  },
+
+  delete: async (id: string): Promise<void> => {
+    await api.delete(`/mistakes/${id}`);
+  },
+
+  review: async (id: string): Promise<MistakeEntry> => {
+    const response = await api.post<MistakeEntry>(`/mistakes/${id}/review`);
+    return response.data;
+  },
+
+  recognizeImage: async (file: File): Promise<ImageRecognitionResult> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await api.post<ImageRecognitionResult>('/mistakes/recognize', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 120000, // AI 识别可能较慢
+    });
+    return response.data;
+  },
+
+  getSubjects: async (): Promise<string[]> => {
+    const response = await api.get<string[]>('/mistakes/subjects');
+    return response.data;
+  },
+
+  getStats: async (): Promise<MistakeStats> => {
+    const response = await api.get<MistakeStats>('/mistakes/stats');
+    return response.data;
   },
 };
 

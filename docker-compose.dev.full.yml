@@ -48,9 +48,15 @@ services:
       - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-minioadmin}
       - MINIO_BUCKET=scratch-assets
       - MINIO_SECURE=false
+      - AI_MODEL=${AI_MODEL:-gemini/gemini-3-pro-preview}
+      - AI_API_KEY=${AI_API_KEY:-}
+      - AI_API_BASE=${AI_API_BASE:-}
+      - AI_MAX_TOKENS=${AI_MAX_TOKENS:-4096}
+      - AI_TEMPERATURE=${AI_TEMPERATURE:-0.3}
     volumes:
       - ./backend-python/app:/app/app:cached
       - ./backend-python/run.py:/app/run.py:cached
+      - ./backend-python/prompts:/app/prompts:cached
     depends_on:
       - mongo
       - redis

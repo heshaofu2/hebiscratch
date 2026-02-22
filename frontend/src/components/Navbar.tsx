@@ -25,7 +25,7 @@ export function Navbar() {
     <nav className="h-16 bg-orange-500 text-white shadow-md">
       <div className="max-w-7xl mx-auto px-4 h-full flex items-center justify-between">
         <Link href="/" className="text-2xl font-bold hover:opacity-90">
-          Scratch
+          魔法小屋
         </Link>
 
         <div className="flex items-center gap-4">
@@ -48,6 +48,12 @@ export function Navbar() {
                 className="px-4 py-2 hover:bg-orange-600 rounded-lg transition"
               >
                 我的作品
+              </Link>
+              <Link
+                href="/mistakes"
+                className="px-4 py-2 hover:bg-orange-600 rounded-lg transition"
+              >
+                错题本
               </Link>
               {user?.role === 'admin' && (
                 <Link
