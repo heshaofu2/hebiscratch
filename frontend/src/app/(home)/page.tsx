@@ -8,12 +8,11 @@ export default function HomePage() {
   const router = useRouter();
   const { isAuthenticated, isLoading } = useAuthStore();
 
-  const handleCardClick = (href: string) => (e: React.MouseEvent) => {
-    e.preventDefault();
+  const handleCardClick = (href: string) => () => {
     if (isAuthenticated) {
       window.open(href, '_blank');
     } else {
-      router.push('/auth/login');
+      router.push(href);
     }
   };
 
@@ -50,9 +49,10 @@ export default function HomePage() {
         {/* 双功能卡片 */}
         <div className="grid md:grid-cols-2 gap-8 mb-20">
           {/* Scratch 编程卡片 */}
-          <a
-            href="/projects"
+          <div
             onClick={handleCardClick('/projects')}
+            role="link"
+            tabIndex={0}
             className="group relative bg-gradient-to-br from-orange-400 to-orange-600 rounded-2xl p-8 text-white shadow-lg hover:shadow-xl transition hover:-translate-y-1 cursor-pointer"
           >
             <div className="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center mb-5">
@@ -70,12 +70,13 @@ export default function HomePage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </span>
-          </a>
+          </div>
 
           {/* 错题本卡片 */}
-          <a
-            href="/mistakes"
+          <div
             onClick={handleCardClick('/mistakes')}
+            role="link"
+            tabIndex={0}
             className="group relative bg-gradient-to-br from-indigo-400 to-indigo-600 rounded-2xl p-8 text-white shadow-lg hover:shadow-xl transition hover:-translate-y-1 cursor-pointer"
           >
             <div className="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center mb-5">
@@ -93,7 +94,7 @@ export default function HomePage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </span>
-          </a>
+          </div>
         </div>
 
         {/* 特性卡片 */}
