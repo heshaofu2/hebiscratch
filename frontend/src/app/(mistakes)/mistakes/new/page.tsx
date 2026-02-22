@@ -12,7 +12,7 @@ type Tab = 'manual' | 'image';
 
 export default function NewMistakePage() {
   const router = useRouter();
-  const [tab, setTab] = useState<Tab>('manual');
+  const [tab, setTab] = useState<Tab>('image');
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
 
   const {
