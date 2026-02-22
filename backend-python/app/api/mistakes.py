@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, UploadFile, File, status
+from fastapi import APIRouter, HTTPException, Query, UploadFile, File, status
 from fastapi.responses import Response as RawResponse
 
 from app.models import MistakeEntry
@@ -66,7 +66,7 @@ async def get_stats(current_user: CurrentUser):
 @router.get("", response_model=list[MistakeListResponse])
 async def list_mistakes(
     current_user: CurrentUser,
-    subject: Optional[str] = None,
+    subject: Optional[list[str]] = Query(None),
     mastered: Optional[bool] = None,
     search: Optional[str] = None,
 ):
@@ -74,7 +74,7 @@ async def list_mistakes(
     query = {"owner.$id": current_user.id}
 
     if subject:
-        query["subject"] = subject
+        query["subject"] = subject[0] if len(subject) == 1 else {"$in": subject}
     if mastered is not None:
         query["is_mastered"] = mastered
     if search:

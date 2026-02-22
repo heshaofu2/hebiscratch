@@ -205,11 +205,14 @@ export const adminApi = {
 // Mistakes API
 export const mistakesApi = {
   list: async (params?: {
-    subject?: string;
+    subject?: string[];
     mastered?: boolean;
     search?: string;
   }): Promise<MistakeListItem[]> => {
-    const response = await api.get<MistakeListItem[]>('/mistakes', { params });
+    const response = await api.get<MistakeListItem[]>('/mistakes', {
+      params,
+      paramsSerializer: { indexes: null },
+    });
     return response.data;
   },
 

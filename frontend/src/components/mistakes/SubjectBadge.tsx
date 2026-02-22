@@ -1,6 +1,6 @@
 'use client';
 
-const SUBJECT_COLORS: Record<string, string> = {
+export const SUBJECT_COLORS: Record<string, string> = {
   '语文': 'bg-red-100 text-red-700',
   '数学': 'bg-blue-100 text-blue-700',
   '英语': 'bg-purple-100 text-purple-700',

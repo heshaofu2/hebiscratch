@@ -27,7 +27,7 @@ interface MistakesState {
   isSelectMode: boolean;
 
   // 筛选
-  subjectFilter: string;
+  subjectFilter: string[];
   masteredFilter: string; // 'all' | 'true' | 'false'
   searchQuery: string;
 
@@ -52,7 +52,7 @@ interface MistakesState {
   batchUpdateMastered: (ids: string[], isMastered: boolean) => Promise<void>;
 
   // 筛选设置
-  setSubjectFilter: (subject: string) => void;
+  setSubjectFilter: (subjects: string[]) => void;
   setMasteredFilter: (mastered: string) => void;
   setSearchQuery: (query: string) => void;
 }
@@ -67,7 +67,7 @@ export const useMistakesStore = create<MistakesState>((set, get) => ({
   error: null,
   selectedIds: new Set(),
   isSelectMode: false,
-  subjectFilter: '',
+  subjectFilter: [],
   masteredFilter: 'all',
   searchQuery: '',
 
@@ -75,8 +75,8 @@ export const useMistakesStore = create<MistakesState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const { subjectFilter, masteredFilter, searchQuery } = get();
-      const params: Record<string, string | boolean> = {};
-      if (subjectFilter) params.subject = subjectFilter;
+      const params: Record<string, string[] | boolean | string> = {};
+      if (subjectFilter.length > 0) params.subject = subjectFilter;
       if (masteredFilter !== 'all') params.mastered = masteredFilter === 'true';
       if (searchQuery) params.search = searchQuery;
 
@@ -260,7 +260,7 @@ export const useMistakesStore = create<MistakesState>((set, get) => ({
     }
   },
 
-  setSubjectFilter: (subject: string) => set({ subjectFilter: subject }),
+  setSubjectFilter: (subjects: string[]) => set({ subjectFilter: subjects }),
   setMasteredFilter: (mastered: string) => set({ masteredFilter: mastered }),
   setSearchQuery: (query: string) => set({ searchQuery: query }),
 }));

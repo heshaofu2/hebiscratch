@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useMistakesStore } from '@/store/mistakes';
 import { MistakeCard } from '@/components/mistakes/MistakeCard';
 import { MistakeStats } from '@/components/mistakes/MistakeStats';
-import { SubjectSelect } from '@/components/mistakes/SubjectSelect';
+import { SubjectTagFilter } from '@/components/mistakes/SubjectTagFilter';
 import {
   Dialog,
   DialogContent,
@@ -66,22 +66,33 @@ export default function MistakesPage() {
         </div>
 
         {/* 筛选栏 */}
-        <div className="flex flex-wrap items-center gap-3 mb-6">
-          <SubjectSelect
-            value={subjectFilter}
-            onChange={(v) => setSubjectFilter(v)}
-            includeAll
-          />
+        <div className="space-y-3 mb-6">
+          <SubjectTagFilter selected={subjectFilter} onChange={setSubjectFilter} />
 
-          <select
-            value={masteredFilter}
-            onChange={(e) => setMasteredFilter(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          >
-            <option value="all">全部状态</option>
-            <option value="false">未掌握</option>
-            <option value="true">已掌握</option>
-          </select>
+          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2">
+            {([
+              { value: 'all', label: '全部状态' },
+              { value: 'false', label: '未掌握' },
+              { value: 'true', label: '已掌握' },
+            ] as const).map(({ value, label }) => (
+              <button
+                key={value}
+                onClick={() => setMasteredFilter(value)}
+                className={`px-3 py-1 rounded-full text-xs font-medium transition ${
+                  masteredFilter === value
+                    ? value === 'true'
+                      ? 'bg-green-100 text-green-700 ring-1 ring-green-300'
+                      : value === 'false'
+                        ? 'bg-orange-100 text-orange-700 ring-1 ring-orange-300'
+                        : 'bg-indigo-100 text-indigo-700 ring-1 ring-indigo-300'
+                    : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
 
           <input
             type="text"
@@ -101,6 +112,7 @@ export default function MistakesPage() {
           >
             {isSelectMode ? '取消' : '选择'}
           </button>
+          </div>
         </div>
 
         {/* 错题列表 */}
