@@ -97,7 +97,7 @@ async def create_mistake(data: MistakeCreate, current_user: CurrentUser):
         wrong_answer=data.wrongAnswer,
         correct_answer=data.correctAnswer,
         analysis=data.analysis,
-        tags=data.tags,
+        knowledge_points=data.knowledgePoints,
         source="manual",
     )
     await mistake.insert()
@@ -235,6 +235,7 @@ async def batch_update_mistakes(
         "wrongAnswer": "wrong_answer",
         "correctAnswer": "correct_answer",
         "isMastered": "is_mastered",
+        "knowledgePoints": "knowledge_points",
     }
     for camel, snake in field_map.items():
         if camel in update_data:
@@ -313,6 +314,7 @@ async def update_mistake(data: MistakeUpdate, mistake: OwnedMistake):
         "wrongAnswer": "wrong_answer",
         "correctAnswer": "correct_answer",
         "isMastered": "is_mastered",
+        "knowledgePoints": "knowledge_points",
     }
     for camel, snake in field_map.items():
         if camel in update_data:

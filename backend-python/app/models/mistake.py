@@ -19,7 +19,7 @@ class MistakeEntry(Document):
     source: str = "manual"  # "manual" | "image"
     source_image_path: Optional[str] = None  # MinIO 原始图片路径
     cropped_image_path: Optional[str] = None  # MinIO 裁剪后的题目图片路径
-    tags: list[str] = Field(default_factory=list)
+    knowledge_points: list[str] = Field(default_factory=list)
     is_mastered: bool = False
     review_count: int = 0
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -41,7 +41,7 @@ class MistakeEntry(Document):
             "source": self.source,
             "sourceImagePath": self.source_image_path,
             "croppedImagePath": self.cropped_image_path,
-            "tags": self.tags,
+            "knowledgePoints": self.knowledge_points,
             "isMastered": self.is_mastered,
             "reviewCount": self.review_count,
             "createdAt": self.created_at.isoformat(),
@@ -57,6 +57,6 @@ class MistakeEntry(Document):
             "isMastered": self.is_mastered,
             "reviewCount": self.review_count,
             "source": self.source,
-            "tags": self.tags,
+            "knowledgePoints": self.knowledge_points,
             "createdAt": self.created_at.isoformat(),
         }

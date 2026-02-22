@@ -32,7 +32,7 @@ export function MistakeForm({ onSubmit, isLoading = false }: MistakeFormProps) {
       wrongAnswer: wrongAnswer.trim(),
       correctAnswer: correctAnswer.trim(),
       analysis: analysis.trim() || undefined,
-      tags,
+      knowledgePoints: tags,
     });
 
     // 成功后清空表单
@@ -95,17 +95,6 @@ export function MistakeForm({ onSubmit, isLoading = false }: MistakeFormProps) {
           rows={3}
           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
           placeholder="解题思路和知识点..."
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">标签</label>
-        <input
-          type="text"
-          value={tagsInput}
-          onChange={(e) => setTagsInput(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-          placeholder="用逗号分隔，如：二次方程, 期中考试"
         />
       </div>
 

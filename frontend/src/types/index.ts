@@ -120,7 +120,7 @@ export interface MistakeEntry {
   sourceImageUrl?: string;
   croppedImagePath?: string;
   croppedImageUrl?: string;
-  tags: string[];
+  knowledgePoints: string[];
   isMastered: boolean;
   reviewCount: number;
   createdAt: string;
@@ -134,7 +134,7 @@ export interface MistakeListItem {
   isMastered: boolean;
   reviewCount: number;
   source: string;
-  tags: string[];
+  knowledgePoints: string[];
   createdAt: string;
 }
 
@@ -144,7 +144,7 @@ export interface MistakeCreateData {
   wrongAnswer?: string;
   correctAnswer?: string;
   analysis?: string;
-  tags?: string[];
+  knowledgePoints?: string[];
 }
 
 export interface MistakeUpdateData {
@@ -153,7 +153,7 @@ export interface MistakeUpdateData {
   wrongAnswer?: string;
   correctAnswer?: string;
   analysis?: string;
-  tags?: string[];
+  knowledgePoints?: string[];
   isMastered?: boolean;
 }
 

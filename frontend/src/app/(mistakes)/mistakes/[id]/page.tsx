@@ -303,8 +303,8 @@ export default function MistakeDetailPage() {
           <div className="pt-4 border-t border-gray-100 flex items-center gap-6 text-xs text-gray-400">
             <span>创建时间：{new Date(mistake.createdAt).toLocaleString('zh-CN')}</span>
             <span>更新时间：{new Date(mistake.updatedAt).toLocaleString('zh-CN')}</span>
-            {mistake.tags.length > 0 && (
-              <span>标签：{mistake.tags.join(', ')}</span>
+            {mistake.knowledgePoints.length > 0 && (
+              <span>知识点：{mistake.knowledgePoints.join(', ')}</span>
             )}
           </div>
         </div>

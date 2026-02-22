@@ -13,7 +13,7 @@ class MistakeCreate(BaseModel):
     wrongAnswer: str = ""
     correctAnswer: str = ""
     analysis: Optional[str] = None
-    tags: list[str] = Field(default_factory=list)
+    knowledgePoints: list[str] = Field(default_factory=list)
 
 
 class MistakeUpdate(BaseModel):
@@ -23,7 +23,7 @@ class MistakeUpdate(BaseModel):
     wrongAnswer: Optional[str] = None
     correctAnswer: Optional[str] = None
     analysis: Optional[str] = None
-    tags: Optional[list[str]] = None
+    knowledgePoints: Optional[list[str]] = None
     isMastered: Optional[bool] = None
 
 
@@ -70,7 +70,7 @@ class MistakeResponse(BaseModel):
     sourceImageUrl: Optional[str] = None
     croppedImagePath: Optional[str] = None
     croppedImageUrl: Optional[str] = None
-    tags: list[str]
+    knowledgePoints: list[str]
     isMastered: bool
     reviewCount: int
     createdAt: datetime
@@ -88,7 +88,7 @@ class MistakeListResponse(BaseModel):
     isMastered: bool
     reviewCount: int
     source: str
-    tags: list[str]
+    knowledgePoints: list[str]
     createdAt: datetime
 
     class Config:
