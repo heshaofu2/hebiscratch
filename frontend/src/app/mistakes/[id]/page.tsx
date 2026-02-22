@@ -16,7 +16,6 @@ export default function MistakeDetailPage() {
     fetchMistake,
     updateMistake,
     deleteMistake,
-    reviewMistake,
   } = useMistakesStore();
 
   const [isEditing, setIsEditing] = useState(false);
@@ -90,10 +89,6 @@ export default function MistakeDetailPage() {
     await updateMistake(mistake._id, { isMastered: !mistake.isMastered });
   };
 
-  const handleReview = async () => {
-    if (!mistake) return;
-    await reviewMistake(mistake._id);
-  };
 
   if (isLoading || !mistake) {
     return (
@@ -186,12 +181,6 @@ export default function MistakeDetailPage() {
                 }`}
               >
                 {mistake.isMastered ? '已掌握' : '未掌握'}
-              </button>
-              <button
-                onClick={handleReview}
-                className="px-4 py-1.5 text-sm bg-indigo-100 text-indigo-700 rounded-full font-medium hover:bg-indigo-200 transition"
-              >
-                复习 ({mistake.reviewCount})
               </button>
             </div>
           </div>

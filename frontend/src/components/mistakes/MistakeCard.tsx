@@ -46,7 +46,6 @@ export function MistakeCard({
               </svg>
             </span>
           )}
-          <span>复习 {mistake.reviewCount} 次</span>
         </div>
       </div>
 

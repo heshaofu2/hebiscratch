@@ -69,7 +69,7 @@ export default function MistakesPage() {
         <div className="space-y-3 mb-6">
           <SubjectTagFilter selected={subjectFilter} onChange={setSubjectFilter} />
 
-          <div className="flex flex-wrap items-center gap-3">
+          {/* 状态标签 */}
           <div className="flex items-center gap-2">
             {([
               { value: 'all', label: '全部状态' },
@@ -94,24 +94,27 @@ export default function MistakesPage() {
             ))}
           </div>
 
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="搜索题目..."
-            className="flex-1 min-w-[200px] px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          />
-
-          <button
-            onClick={toggleSelectMode}
-            className={`px-4 py-2 text-sm font-medium rounded-lg transition ${
-              isSelectMode
-                ? 'bg-indigo-100 text-indigo-700 border border-indigo-300'
-                : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-50'
-            }`}
-          >
-            {isSelectMode ? '取消' : '选择'}
-          </button>
+          {/* 选择按钮 + 搜索框，宽度与一个卡片对齐 */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={toggleSelectMode}
+                className={`shrink-0 px-4 py-2 text-sm font-medium rounded-lg transition ${
+                  isSelectMode
+                    ? 'bg-indigo-100 text-indigo-700 border border-indigo-300'
+                    : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                {isSelectMode ? '取消' : '选择'}
+              </button>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="搜索题目..."
+                className="flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
           </div>
         </div>
 
