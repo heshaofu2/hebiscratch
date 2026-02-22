@@ -17,7 +17,8 @@ class MistakeEntry(Document):
     correct_answer: str = ""  # 正确答案
     analysis: Optional[str] = None  # 解析
     source: str = "manual"  # "manual" | "image"
-    source_image_path: Optional[str] = None  # MinIO 图片路径
+    source_image_path: Optional[str] = None  # MinIO 原始图片路径
+    cropped_image_path: Optional[str] = None  # MinIO 裁剪后的题目图片路径
     tags: list[str] = Field(default_factory=list)
     is_mastered: bool = False
     review_count: int = 0
@@ -39,6 +40,7 @@ class MistakeEntry(Document):
             "analysis": self.analysis,
             "source": self.source,
             "sourceImagePath": self.source_image_path,
+            "croppedImagePath": self.cropped_image_path,
             "tags": self.tags,
             "isMastered": self.is_mastered,
             "reviewCount": self.review_count,

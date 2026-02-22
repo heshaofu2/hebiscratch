@@ -73,6 +73,43 @@ async def recognize_questions_from_image(image_data: bytes, mime_type: str) -> l
         return []
 
 
+def crop_and_store_question_image(
+    image_data: bytes, bbox: dict, user_id: str
+) -> str:
+    """根据归一化 bbox 裁剪题目区域，保存为 JPEG 并上传到 MinIO
+
+    Args:
+        image_data: 原始图片二进制数据
+        bbox: 归一化坐标 {"x": float, "y": float, "width": float, "height": float}
+        user_id: 用户 ID，用于构建存储路径
+
+    Returns:
+        MinIO 中裁剪图片的对象名称
+    """
+    from io import BytesIO
+    from PIL import Image
+
+    img = Image.open(BytesIO(image_data)).convert("RGB")
+    w, h = img.size
+
+    # 归一化坐标 → 像素坐标，clamp 到图片范围内
+    left = max(0, int(bbox["x"] * w))
+    top = max(0, int(bbox["y"] * h))
+    right = min(w, int((bbox["x"] + bbox["width"]) * w))
+    bottom = min(h, int((bbox["y"] + bbox["height"]) * h))
+
+    cropped = img.crop((left, top, right, bottom))
+
+    buf = BytesIO()
+    cropped.save(buf, format="JPEG", quality=85)
+    cropped_bytes = buf.getvalue()
+
+    object_name = f"mistakes/{user_id}/cropped_{uuid.uuid4().hex}.jpg"
+    storage = get_storage_service()
+    storage.upload_file(cropped_bytes, object_name, "image/jpeg")
+    return object_name
+
+
 def get_mistake_image_url(object_name: str) -> Optional[str]:
     """获取错题图片的预签名 URL"""
     storage = get_storage_service()

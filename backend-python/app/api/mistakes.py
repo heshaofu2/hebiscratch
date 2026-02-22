@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, UploadFile, File, status
+from fastapi.responses import Response as RawResponse
 
 from app.models import MistakeEntry
 from app.schemas.mistake import (
@@ -16,9 +17,11 @@ from app.schemas.mistake import (
 from app.services.mistake import (
     store_mistake_image,
     recognize_questions_from_image,
+    crop_and_store_question_image,
     get_mistake_image_url,
     delete_mistake_image,
 )
+from app.services.storage import get_storage_service
 
 from .deps import CurrentUser, OwnedMistake
 
@@ -113,6 +116,7 @@ async def create_mistakes_batch(data: MistakeBatchCreate, current_user: CurrentU
             analysis=item.analysis,
             source="image",
             source_image_path=item.sourceImagePath or data.sourceImagePath,
+            cropped_image_path=item.croppedImagePath,
         )
         await mistake.insert()
         results.append(mistake.to_response())
@@ -147,6 +151,22 @@ async def recognize_image(
             detail=f"AI 识别失败: {str(e)}",
         )
 
+    # 根据 bbox 裁剪每道题的图片区域
+    user_id = str(current_user.id)
+    for q in questions:
+        bbox = q.get("bbox") if isinstance(q, dict) else None
+        if not bbox:
+            print(f"[CROP] question {q.get('index')}: no bbox, skipping")
+            continue
+        try:
+            cropped_path = crop_and_store_question_image(image_data, bbox, user_id)
+            q["croppedImagePath"] = cropped_path
+            print(f"[CROP] question {q.get('index')}: OK → {cropped_path}")
+        except Exception as e:
+            print(f"[CROP] question {q.get('index')}: FAILED → {e}")
+            import traceback
+            traceback.print_exc()
+
     return ImageRecognitionResponse(imagePath=image_path, questions=questions)
 
 
@@ -154,12 +174,45 @@ async def recognize_image(
 async def get_mistake(mistake: OwnedMistake):
     """获取错题详情"""
     response = mistake.to_response()
-    # 如有图片，附带预签名 URL
+    # 如有裁剪图片，附带预签名 URL
+    if mistake.cropped_image_path:
+        url = get_mistake_image_url(mistake.cropped_image_path)
+        if url:
+            response["croppedImageUrl"] = url
+    # 如有原始图片，附带预签名 URL
     if mistake.source_image_path:
         url = get_mistake_image_url(mistake.source_image_path)
         if url:
             response["sourceImageUrl"] = url
     return response
+
+
+def _image_media_type(path: str) -> str:
+    ext = path.rsplit(".", 1)[-1].lower()
+    return "image/jpeg" if ext in ("jpg", "jpeg") else f"image/{ext}"
+
+
+@router.get("/{mistake_id}/image")
+async def get_mistake_image(mistake: OwnedMistake):
+    """获取题目图片（优先裁剪图，回退原图）"""
+    path = mistake.cropped_image_path or mistake.source_image_path
+    if not path:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="无图片")
+    data = get_storage_service().download_file(path)
+    if not data:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="图片不存在")
+    return RawResponse(content=data, media_type=_image_media_type(path))
+
+
+@router.get("/{mistake_id}/source-image")
+async def get_mistake_source_image(mistake: OwnedMistake):
+    """获取原始完整图片"""
+    if not mistake.source_image_path:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="无原始图片")
+    data = get_storage_service().download_file(mistake.source_image_path)
+    if not data:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="图片不存在")
+    return RawResponse(content=data, media_type=_image_media_type(mistake.source_image_path))
 
 
 @router.put("/{mistake_id}", response_model=MistakeResponse)
@@ -188,8 +241,17 @@ async def update_mistake(data: MistakeUpdate, mistake: OwnedMistake):
 @router.delete("/{mistake_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_mistake(mistake: OwnedMistake):
     """删除错题（同时清理 MinIO 图片）"""
+    # 裁剪图片是一对一关系，直接删除
+    if mistake.cropped_image_path:
+        delete_mistake_image(mistake.cropped_image_path)
+    # 原图可能被多道题共享，仅当无其他引用时才删除
     if mistake.source_image_path:
-        delete_mistake_image(mistake.source_image_path)
+        sibling_count = await MistakeEntry.find(
+            MistakeEntry.source_image_path == mistake.source_image_path,
+            MistakeEntry.id != mistake.id,
+        ).count()
+        if sibling_count == 0:
+            delete_mistake_image(mistake.source_image_path)
     await mistake.delete()
 
 

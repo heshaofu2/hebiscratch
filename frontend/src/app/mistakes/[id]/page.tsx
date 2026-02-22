@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useMistakesStore } from '@/store/mistakes';
+import { mistakesApi } from '@/lib/api';
 import { SubjectBadge } from '@/components/mistakes/SubjectBadge';
 import { SubjectSelect } from '@/components/mistakes/SubjectSelect';
 
@@ -27,6 +28,8 @@ export default function MistakeDetailPage() {
     correctAnswer: '',
     analysis: '',
   });
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [sourceImageUrl, setSourceImageUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (id) fetchMistake(id);
@@ -43,6 +46,31 @@ export default function MistakeDetailPage() {
       });
     }
   }, [mistake]);
+
+  // 通过后端代理加载图片（避免 MinIO 直连跨域问题）
+  useEffect(() => {
+    if (!mistake) return;
+    const hasImage = mistake.croppedImagePath || mistake.sourceImagePath;
+    if (!hasImage) return;
+
+    let revoked = false;
+    const urls: string[] = [];
+
+    mistakesApi.getImageUrl(mistake._id)
+      .then(url => { if (!revoked) { urls.push(url); setImageUrl(url); } })
+      .catch(() => {});
+
+    if (mistake.croppedImagePath && mistake.sourceImagePath) {
+      mistakesApi.getSourceImageUrl(mistake._id)
+        .then(url => { if (!revoked) { urls.push(url); setSourceImageUrl(url); } })
+        .catch(() => {});
+    }
+
+    return () => {
+      revoked = true;
+      urls.forEach(URL.revokeObjectURL);
+    };
+  }, [mistake?._id, mistake?.croppedImagePath, mistake?.sourceImagePath]);
 
   const handleSaveEdit = async () => {
     if (!mistake) return;
@@ -253,15 +281,29 @@ export default function MistakeDetailPage() {
             </div>
           )}
 
-          {/* 原始图片 */}
-          {mistake.sourceImageUrl && (
+          {/* 题目图片 */}
+          {imageUrl && (
             <div>
-              <label className="block text-sm font-medium text-gray-500 mb-2">原始图片</label>
+              <label className="block text-sm font-medium text-gray-500 mb-2">
+                {mistake.croppedImagePath ? '题目图片' : '原始图片'}
+              </label>
               <img
-                src={mistake.sourceImageUrl}
-                alt="原始题目图片"
+                src={imageUrl}
+                alt="题目图片"
                 className="max-h-80 rounded-lg border border-gray-200"
               />
+              {sourceImageUrl && (
+                <details className="mt-3">
+                  <summary className="text-sm text-gray-500 cursor-pointer hover:text-gray-700">
+                    查看原始完整图片
+                  </summary>
+                  <img
+                    src={sourceImageUrl}
+                    alt="原始完整图片"
+                    className="mt-2 max-h-96 rounded-lg border border-gray-200"
+                  />
+                </details>
+              )}
             </div>
           )}
 

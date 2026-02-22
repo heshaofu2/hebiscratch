@@ -35,6 +35,7 @@ class MistakeBatchItem(BaseModel):
     correctAnswer: str = ""
     analysis: Optional[str] = None
     sourceImagePath: Optional[str] = None
+    croppedImagePath: Optional[str] = None
 
 
 class MistakeBatchCreate(BaseModel):
@@ -55,6 +56,9 @@ class MistakeResponse(BaseModel):
     analysis: Optional[str] = None
     source: str
     sourceImagePath: Optional[str] = None
+    sourceImageUrl: Optional[str] = None
+    croppedImagePath: Optional[str] = None
+    croppedImageUrl: Optional[str] = None
     tags: list[str]
     isMastered: bool
     reviewCount: int
@@ -99,6 +103,7 @@ class RecognizedQuestion(BaseModel):
     analysis: str = ""
     subjectGuess: str = ""
     bbox: BBox
+    croppedImagePath: Optional[str] = None
 
 
 class ImageRecognitionResponse(BaseModel):

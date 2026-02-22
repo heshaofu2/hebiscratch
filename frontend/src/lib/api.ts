@@ -261,6 +261,16 @@ export const mistakesApi = {
     const response = await api.get<MistakeStats>('/mistakes/stats');
     return response.data;
   },
+
+  getImageUrl: async (id: string): Promise<string> => {
+    const response = await api.get(`/mistakes/${id}/image`, { responseType: 'blob' });
+    return URL.createObjectURL(response.data);
+  },
+
+  getSourceImageUrl: async (id: string): Promise<string> => {
+    const response = await api.get(`/mistakes/${id}/source-image`, { responseType: 'blob' });
+    return URL.createObjectURL(response.data);
+  },
 };
 
 export default api;

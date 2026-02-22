@@ -118,6 +118,8 @@ export interface MistakeEntry {
   source: 'manual' | 'image';
   sourceImagePath?: string;
   sourceImageUrl?: string;
+  croppedImagePath?: string;
+  croppedImageUrl?: string;
   tags: string[];
   isMastered: boolean;
   reviewCount: number;
@@ -163,6 +165,7 @@ export interface MistakeBatchCreateData {
     correctAnswer?: string;
     analysis?: string;
     sourceImagePath?: string;
+    croppedImagePath?: string;
   }[];
   sourceImagePath?: string;
 }
@@ -182,6 +185,7 @@ export interface RecognizedQuestion {
   analysis: string;
   subjectGuess: string;
   bbox: BBox;
+  croppedImagePath?: string;
 }
 
 export interface ImageRecognitionResult {

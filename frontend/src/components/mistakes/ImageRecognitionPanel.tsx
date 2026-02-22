@@ -44,6 +44,7 @@ export function ImageRecognitionPanel({
         correctAnswer: q.correctAnswer,
         analysis: q.analysis,
         sourceImagePath: result.imagePath,
+        croppedImagePath: q.croppedImagePath,
       }));
 
     if (items.length === 0) return;
