@@ -1,17 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/auth';
 
-export function Navbar() {
-  const pathname = usePathname();
+export function HomeNavbar() {
   const { user, isAuthenticated, isLoading, logout } = useAuthStore();
-
-  // 编辑器页面不显示导航栏
-  if (pathname?.startsWith('/editor')) {
-    return null;
-  }
 
   const handleLogout = async () => {
     await logout();
@@ -30,18 +23,6 @@ export function Navbar() {
             <div className="w-20 h-8 bg-orange-400 animate-pulse rounded" />
           ) : isAuthenticated ? (
             <>
-              <Link
-                href="/projects"
-                className="px-4 py-2 hover:bg-orange-600 rounded-lg transition"
-              >
-                Scratch 编程
-              </Link>
-              <Link
-                href="/mistakes"
-                className="px-4 py-2 hover:bg-orange-600 rounded-lg transition"
-              >
-                错题本
-              </Link>
               {user?.role === 'admin' && (
                 <Link
                   href="/admin/users"

@@ -61,7 +61,6 @@ export default function MistakesPage() {
       <div className="max-w-6xl mx-auto px-4 py-8">
         {/* 统计概览 */}
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">错题本</h1>
           <MistakeStats stats={stats} />
         </div>
 

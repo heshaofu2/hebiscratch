@@ -1,10 +1,21 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth';
 
 export default function HomePage() {
+  const router = useRouter();
   const { isAuthenticated, isLoading } = useAuthStore();
+
+  const handleCardClick = (href: string) => (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (isAuthenticated) {
+      window.open(href, '_blank');
+    } else {
+      router.push('/auth/login');
+    }
+  };
 
   return (
     <div className="min-h-[calc(100vh-64px)] bg-gradient-to-b from-orange-50 to-white">
@@ -39,9 +50,10 @@ export default function HomePage() {
         {/* 双功能卡片 */}
         <div className="grid md:grid-cols-2 gap-8 mb-20">
           {/* Scratch 编程卡片 */}
-          <Link
-            href={isAuthenticated ? '/projects' : '/auth/login'}
-            className="group relative bg-gradient-to-br from-orange-400 to-orange-600 rounded-2xl p-8 text-white shadow-lg hover:shadow-xl transition hover:-translate-y-1"
+          <a
+            href="/projects"
+            onClick={handleCardClick('/projects')}
+            className="group relative bg-gradient-to-br from-orange-400 to-orange-600 rounded-2xl p-8 text-white shadow-lg hover:shadow-xl transition hover:-translate-y-1 cursor-pointer"
           >
             <div className="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center mb-5">
               <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -58,12 +70,13 @@ export default function HomePage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </span>
-          </Link>
+          </a>
 
           {/* 错题本卡片 */}
-          <Link
-            href={isAuthenticated ? '/mistakes' : '/auth/login'}
-            className="group relative bg-gradient-to-br from-indigo-400 to-indigo-600 rounded-2xl p-8 text-white shadow-lg hover:shadow-xl transition hover:-translate-y-1"
+          <a
+            href="/mistakes"
+            onClick={handleCardClick('/mistakes')}
+            className="group relative bg-gradient-to-br from-indigo-400 to-indigo-600 rounded-2xl p-8 text-white shadow-lg hover:shadow-xl transition hover:-translate-y-1 cursor-pointer"
           >
             <div className="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center mb-5">
               <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -80,7 +93,7 @@ export default function HomePage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </span>
-          </Link>
+          </a>
         </div>
 
         {/* 特性卡片 */}

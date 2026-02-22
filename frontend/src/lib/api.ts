@@ -46,7 +46,8 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       Cookies.remove('token');
       if (typeof window !== 'undefined') {
-        window.location.href = '/auth/login';
+        const redirect = encodeURIComponent(window.location.pathname);
+        window.location.href = `/auth/login?redirect=${redirect}`;
       }
     }
     return Promise.reject(error);

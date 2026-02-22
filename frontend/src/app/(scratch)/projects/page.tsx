@@ -18,7 +18,7 @@ export default function ProjectsPage() {
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
-      router.push('/auth/login');
+      router.push('/auth/login?redirect=%2Fprojects');
       return;
     }
     if (isAuthenticated) {

@@ -17,7 +17,7 @@ export default function AdminLayout({
   useEffect(() => {
     if (!isLoading) {
       if (!isAuthenticated) {
-        router.push('/auth/login');
+        router.push(`/auth/login?redirect=${encodeURIComponent(pathname)}`);
       } else if (user?.role !== 'admin') {
         router.push('/');
       }
