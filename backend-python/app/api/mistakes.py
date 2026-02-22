@@ -9,6 +9,8 @@ from app.schemas.mistake import (
     MistakeCreate,
     MistakeUpdate,
     MistakeBatchCreate,
+    MistakeBatchDeleteRequest,
+    MistakeBatchUpdateRequest,
     MistakeResponse,
     MistakeListResponse,
     ImageRecognitionResponse,
@@ -168,6 +170,92 @@ async def recognize_image(
             traceback.print_exc()
 
     return ImageRecognitionResponse(imagePath=image_path, questions=questions)
+
+
+@router.post("/batch-delete")
+async def batch_delete_mistakes(
+    data: MistakeBatchDeleteRequest,
+    current_user: CurrentUser,
+):
+    """批量删除错题（验证所有权 + 清理 MinIO 图片）"""
+    from bson import ObjectId
+
+    deleted = 0
+    cropped_paths: list[str] = []
+    source_paths: list[str] = []
+    ids_to_delete: list[ObjectId] = []
+
+    # 第一遍：验证所有权，收集图片路径
+    for raw_id in data.ids:
+        try:
+            oid = ObjectId(raw_id)
+        except Exception:
+            continue
+        mistake = await MistakeEntry.get(oid)
+        if not mistake or mistake.owner.ref.id != current_user.id:
+            continue
+        if mistake.cropped_image_path:
+            cropped_paths.append(mistake.cropped_image_path)
+        if mistake.source_image_path:
+            source_paths.append(mistake.source_image_path)
+        ids_to_delete.append(oid)
+
+    # 批量删除文档
+    for oid in ids_to_delete:
+        mistake = await MistakeEntry.get(oid)
+        if mistake:
+            await mistake.delete()
+            deleted += 1
+
+    # 清理裁剪图（一对一，直接删除）
+    for path in cropped_paths:
+        delete_mistake_image(path)
+
+    # 清理原图（仅当无其他引用时）
+    for path in set(source_paths):
+        sibling_count = await MistakeEntry.find(
+            MistakeEntry.source_image_path == path,
+        ).count()
+        if sibling_count == 0:
+            delete_mistake_image(path)
+
+    return {"deleted": deleted}
+
+
+@router.post("/batch-update")
+async def batch_update_mistakes(
+    data: MistakeBatchUpdateRequest,
+    current_user: CurrentUser,
+):
+    """批量更新错题"""
+    from bson import ObjectId
+
+    update_data = data.update.model_dump(exclude_unset=True)
+    field_map = {
+        "wrongAnswer": "wrong_answer",
+        "correctAnswer": "correct_answer",
+        "isMastered": "is_mastered",
+    }
+    for camel, snake in field_map.items():
+        if camel in update_data:
+            update_data[snake] = update_data.pop(camel)
+
+    updated = 0
+    for raw_id in data.ids:
+        try:
+            oid = ObjectId(raw_id)
+        except Exception:
+            continue
+        mistake = await MistakeEntry.get(oid)
+        if not mistake or mistake.owner.ref.id != current_user.id:
+            continue
+        for field, value in update_data.items():
+            setattr(mistake, field, value)
+        mistake.updated_at = datetime.now(timezone.utc)
+        await mistake.save()
+        updated += 1
+
+    return {"updated": updated}
 
 
 @router.get("/{mistake_id}", response_model=MistakeResponse)

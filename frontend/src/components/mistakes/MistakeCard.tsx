@@ -4,14 +4,40 @@ import Link from 'next/link';
 import type { MistakeListItem } from '@/types';
 import { SubjectBadge } from './SubjectBadge';
 
-export function MistakeCard({ mistake }: { mistake: MistakeListItem }) {
-  return (
-    <Link
-      href={`/mistakes/${mistake._id}`}
-      className="block bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md hover:border-indigo-200 transition group"
-    >
+interface MistakeCardProps {
+  mistake: MistakeListItem;
+  isSelectMode?: boolean;
+  isSelected?: boolean;
+  onToggleSelect?: (id: string) => void;
+}
+
+export function MistakeCard({
+  mistake,
+  isSelectMode = false,
+  isSelected = false,
+  onToggleSelect,
+}: MistakeCardProps) {
+  const cardContent = (
+    <>
       <div className="flex items-center justify-between mb-3">
-        <SubjectBadge subject={mistake.subject} />
+        <div className="flex items-center gap-2">
+          {isSelectMode && (
+            <span
+              className={`flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition ${
+                isSelected
+                  ? 'bg-indigo-600 border-indigo-600'
+                  : 'border-gray-300 bg-white'
+              }`}
+            >
+              {isSelected && (
+                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+            </span>
+          )}
+          <SubjectBadge subject={mistake.subject} />
+        </div>
         <div className="flex items-center gap-2 text-xs text-gray-400">
           {mistake.source === 'image' && (
             <span title="图片识别">
@@ -42,6 +68,30 @@ export function MistakeCard({ mistake }: { mistake: MistakeListItem }) {
           {new Date(mistake.createdAt).toLocaleDateString('zh-CN')}
         </span>
       </div>
+    </>
+  );
+
+  if (isSelectMode) {
+    return (
+      <div
+        onClick={() => onToggleSelect?.(mistake._id)}
+        className={`block bg-white rounded-xl shadow-sm border-2 p-5 cursor-pointer transition group ${
+          isSelected
+            ? 'border-indigo-500 bg-indigo-50/50'
+            : 'border-gray-100 hover:shadow-md hover:border-indigo-200'
+        }`}
+      >
+        {cardContent}
+      </div>
+    );
+  }
+
+  return (
+    <Link
+      href={`/mistakes/${mistake._id}`}
+      className="block bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md hover:border-indigo-200 transition group"
+    >
+      {cardContent}
     </Link>
   );
 }

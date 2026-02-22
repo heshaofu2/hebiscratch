@@ -257,6 +257,16 @@ export const mistakesApi = {
     return response.data;
   },
 
+  batchDelete: async (ids: string[]): Promise<{ deleted: number }> => {
+    const response = await api.post<{ deleted: number }>('/mistakes/batch-delete', { ids });
+    return response.data;
+  },
+
+  batchUpdate: async (ids: string[], update: MistakeUpdateData): Promise<{ updated: number }> => {
+    const response = await api.post<{ updated: number }>('/mistakes/batch-update', { ids, update });
+    return response.data;
+  },
+
   getStats: async (): Promise<MistakeStats> => {
     const response = await api.get<MistakeStats>('/mistakes/stats');
     return response.data;

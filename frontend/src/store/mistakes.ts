@@ -22,6 +22,10 @@ interface MistakesState {
   isRecognizing: boolean;
   error: string | null;
 
+  // 多选状态
+  selectedIds: Set<string>;
+  isSelectMode: boolean;
+
   // 筛选
   subjectFilter: string;
   masteredFilter: string; // 'all' | 'true' | 'false'
@@ -39,6 +43,14 @@ interface MistakesState {
   recognizeImage: (file: File) => Promise<ImageRecognitionResult>;
   clearRecognitionResult: () => void;
 
+  // 多选操作
+  toggleSelectMode: () => void;
+  toggleSelect: (id: string) => void;
+  selectAll: () => void;
+  deselectAll: () => void;
+  batchDelete: (ids: string[]) => Promise<void>;
+  batchUpdateMastered: (ids: string[], isMastered: boolean) => Promise<void>;
+
   // 筛选设置
   setSubjectFilter: (subject: string) => void;
   setMasteredFilter: (mastered: string) => void;
@@ -53,6 +65,8 @@ export const useMistakesStore = create<MistakesState>((set, get) => ({
   isLoading: false,
   isRecognizing: false,
   error: null,
+  selectedIds: new Set(),
+  isSelectMode: false,
   subjectFilter: '',
   masteredFilter: 'all',
   searchQuery: '',
@@ -177,6 +191,74 @@ export const useMistakesStore = create<MistakesState>((set, get) => ({
   },
 
   clearRecognitionResult: () => set({ recognitionResult: null }),
+
+  // ── 多选操作 ──────────────────────────────────
+  toggleSelectMode: () => {
+    set((state) => ({
+      isSelectMode: !state.isSelectMode,
+      selectedIds: new Set(),
+    }));
+  },
+
+  toggleSelect: (id: string) => {
+    set((state) => {
+      const next = new Set(state.selectedIds);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return { selectedIds: next };
+    });
+  },
+
+  selectAll: () => {
+    set((state) => ({
+      selectedIds: new Set(state.mistakes.map((m) => m._id)),
+    }));
+  },
+
+  deselectAll: () => {
+    set({ selectedIds: new Set() });
+  },
+
+  batchDelete: async (ids: string[]) => {
+    set({ isLoading: true, error: null });
+    try {
+      await mistakesApi.batchDelete(ids);
+      const idSet = new Set(ids);
+      set((state) => ({
+        mistakes: state.mistakes.filter((m) => !idSet.has(m._id)),
+        isLoading: false,
+        isSelectMode: false,
+        selectedIds: new Set(),
+      }));
+      get().fetchStats();
+    } catch (err) {
+      set({ error: (err as Error).message, isLoading: false });
+      throw err;
+    }
+  },
+
+  batchUpdateMastered: async (ids: string[], isMastered: boolean) => {
+    set({ isLoading: true, error: null });
+    try {
+      await mistakesApi.batchUpdate(ids, { isMastered });
+      const idSet = new Set(ids);
+      set((state) => ({
+        mistakes: state.mistakes.map((m) =>
+          idSet.has(m._id) ? { ...m, isMastered } : m
+        ),
+        isLoading: false,
+        isSelectMode: false,
+        selectedIds: new Set(),
+      }));
+      get().fetchStats();
+    } catch (err) {
+      set({ error: (err as Error).message, isLoading: false });
+      throw err;
+    }
+  },
 
   setSubjectFilter: (subject: string) => set({ subjectFilter: subject }),
   setMasteredFilter: (mastered: string) => set({ masteredFilter: mastered }),

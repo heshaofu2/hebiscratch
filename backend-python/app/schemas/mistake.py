@@ -27,6 +27,17 @@ class MistakeUpdate(BaseModel):
     isMastered: Optional[bool] = None
 
 
+class MistakeBatchDeleteRequest(BaseModel):
+    """批量删除错题"""
+    ids: list[str]
+
+
+class MistakeBatchUpdateRequest(BaseModel):
+    """批量更新错题"""
+    ids: list[str]
+    update: MistakeUpdate
+
+
 class MistakeBatchItem(BaseModel):
     """批量创建中的单条错题（图片识别确认后提交）"""
     subject: str
