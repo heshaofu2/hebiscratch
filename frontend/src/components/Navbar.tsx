@@ -1,15 +1,12 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/auth';
-import { CreateProjectDialog } from '@/components/CreateProjectDialog';
 
 export function Navbar() {
   const pathname = usePathname();
   const { user, isAuthenticated, isLoading, logout } = useAuthStore();
-  const [showCreateDialog, setShowCreateDialog] = useState(false);
 
   // 编辑器页面不显示导航栏
   if (pathname?.startsWith('/editor')) {
@@ -33,21 +30,11 @@ export function Navbar() {
             <div className="w-20 h-8 bg-orange-400 animate-pulse rounded" />
           ) : isAuthenticated ? (
             <>
-              <button
-                onClick={() => setShowCreateDialog(true)}
-                className="px-4 py-2 bg-orange-600 hover:bg-orange-700 rounded-lg transition"
-              >
-                创建项目
-              </button>
-              <CreateProjectDialog
-                open={showCreateDialog}
-                onOpenChange={setShowCreateDialog}
-              />
               <Link
                 href="/projects"
                 className="px-4 py-2 hover:bg-orange-600 rounded-lg transition"
               >
-                我的作品
+                Scratch 编程
               </Link>
               <Link
                 href="/mistakes"
