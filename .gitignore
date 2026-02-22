@@ -46,3 +46,4 @@ minio_data/
 scratch-gui-build/
 
 todolist.md
+.env.development
