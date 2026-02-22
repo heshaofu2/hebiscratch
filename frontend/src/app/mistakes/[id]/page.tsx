@@ -30,6 +30,7 @@ export default function MistakeDetailPage() {
   });
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [sourceImageUrl, setSourceImageUrl] = useState<string | null>(null);
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
 
   useEffect(() => {
     if (id) fetchMistake(id);
@@ -290,7 +291,8 @@ export default function MistakeDetailPage() {
               <img
                 src={imageUrl}
                 alt="题目图片"
-                className="max-h-80 rounded-lg border border-gray-200"
+                onClick={() => setLightboxSrc(imageUrl)}
+                className="max-h-80 rounded-lg border border-gray-200 cursor-zoom-in hover:opacity-90 transition"
               />
               {sourceImageUrl && (
                 <details className="mt-3">
@@ -300,7 +302,8 @@ export default function MistakeDetailPage() {
                   <img
                     src={sourceImageUrl}
                     alt="原始完整图片"
-                    className="mt-2 max-h-96 rounded-lg border border-gray-200"
+                    onClick={() => setLightboxSrc(sourceImageUrl)}
+                    className="mt-2 max-h-96 rounded-lg border border-gray-200 cursor-zoom-in hover:opacity-90 transition"
                   />
                 </details>
               )}
@@ -317,6 +320,21 @@ export default function MistakeDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* 图片放大浮窗 */}
+      {lightboxSrc && (
+        <div
+          className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4"
+          onClick={() => setLightboxSrc(null)}
+        >
+          <img
+            src={lightboxSrc}
+            alt="放大查看"
+            className="max-w-full max-h-full object-contain rounded-lg"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 }
