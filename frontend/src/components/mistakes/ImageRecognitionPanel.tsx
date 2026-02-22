@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import type { RecognizedQuestion, ImageRecognitionResult, MistakeBatchCreateData } from '@/types';
+import { SUBJECTS } from '@/types';
 import { SubjectSelect } from './SubjectSelect';
 
 interface ImageRecognitionPanelProps {
@@ -21,7 +22,12 @@ export function ImageRecognitionPanel({
     () => new Set(result.questions.map((q) => q.index))
   );
   const [subjects, setSubjects] = useState<Record<number, string>>(
-    () => Object.fromEntries(result.questions.map((q) => [q.index, q.subjectGuess || '数学']))
+    () => Object.fromEntries(result.questions.map((q) => [
+      q.index,
+      q.subjectGuess && (SUBJECTS as readonly string[]).includes(q.subjectGuess)
+        ? q.subjectGuess
+        : '未知',
+    ]))
   );
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
@@ -38,7 +44,7 @@ export function ImageRecognitionPanel({
     const items = result.questions
       .filter((q) => selected.has(q.index))
       .map((q) => ({
-        subject: subjects[q.index] || '数学',
+        subject: subjects[q.index] || '未知',
         question: q.question,
         wrongAnswer: q.wrongAnswer,
         correctAnswer: q.correctAnswer,

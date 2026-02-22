@@ -10,6 +10,7 @@ const SUBJECT_COLORS: Record<string, string> = {
   '历史': 'bg-amber-100 text-amber-700',
   '地理': 'bg-teal-100 text-teal-700',
   '政治': 'bg-rose-100 text-rose-700',
+  '未知': 'bg-slate-100 text-slate-700',
   '其他': 'bg-gray-100 text-gray-700',
 };
 

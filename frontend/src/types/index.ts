@@ -103,7 +103,7 @@ export interface PaginatedProjects {
 
 export const SUBJECTS = [
   '语文', '数学', '英语', '物理', '化学',
-  '生物', '历史', '地理', '政治', '其他',
+  '生物', '历史', '地理', '政治', '未知', '其他',
 ] as const;
 
 export type Subject = (typeof SUBJECTS)[number];
