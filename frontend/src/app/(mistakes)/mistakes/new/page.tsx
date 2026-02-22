@@ -60,16 +60,6 @@ export default function NewMistakePage() {
         {/* Tab 切换 */}
         <div className="flex gap-1 bg-gray-200 rounded-lg p-1 mb-6 w-fit">
           <button
-            onClick={() => setTab('manual')}
-            className={`px-5 py-2 rounded-md text-sm font-medium transition ${
-              tab === 'manual'
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            手动录入
-          </button>
-          <button
             onClick={() => setTab('image')}
             className={`px-5 py-2 rounded-md text-sm font-medium transition ${
               tab === 'image'
@@ -78,6 +68,16 @@ export default function NewMistakePage() {
             }`}
           >
             图片识别
+          </button>
+          <button
+            onClick={() => setTab('manual')}
+            className={`px-5 py-2 rounded-md text-sm font-medium transition ${
+              tab === 'manual'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            手动录入
           </button>
         </div>
 

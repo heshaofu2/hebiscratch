@@ -93,7 +93,7 @@ export default function MistakesPage() {
             ))}
           </div>
 
-          {/* 选择按钮 + 搜索框，宽度与一个卡片对齐 */}
+          {/* 操作栏 + 搜索框 */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="flex items-center gap-2">
               <button
@@ -106,14 +106,21 @@ export default function MistakesPage() {
               >
                 {isSelectMode ? '取消' : '选择'}
               </button>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="搜索题目..."
-                className="flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
+              <Link
+                href="/mistakes/new"
+                className="shrink-0 px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition"
+              >
+                添加题目
+              </Link>
             </div>
+            <div className="hidden lg:block" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="搜索题目..."
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
           </div>
         </div>
 
