@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     ai_model: str = "gemini/gemini-3-pro-preview"
     ai_api_key: str = ""
     ai_api_base: str = ""
-    ai_max_tokens: int = 4096
+    ai_max_tokens: int = 16384
     ai_temperature: float = 0.3
     prompts_dir: str = "prompts"
 

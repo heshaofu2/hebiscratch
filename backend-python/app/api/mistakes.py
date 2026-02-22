@@ -140,6 +140,8 @@ async def recognize_image(
     try:
         questions = await recognize_questions_from_image(image_data, file.content_type)
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"AI 识别失败: {str(e)}",

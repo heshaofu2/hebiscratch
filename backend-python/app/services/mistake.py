@@ -41,13 +41,36 @@ async def recognize_questions_from_image(image_data: bytes, mime_type: str) -> l
         system_prompt=system_prompt,
     )
 
-    # LLM 有时会在 JSON 外包裹 markdown 代码块，需要容错提取
+    # LLM 返回的 JSON 可能不标准（markdown 代码块、尾逗号等），需要容错处理
     raw = raw.strip()
+
+    # 提取 JSON 数组部分
     match = re.search(r"\[.*\]", raw, re.DOTALL)
     if match:
         raw = match.group(0)
 
-    return json.loads(raw)
+    # 清理常见的非标准 JSON：尾逗号（对象和数组末尾的逗号）
+    raw = re.sub(r",\s*([\]}])", r"\1", raw)
+
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        # JSON 可能因 max_tokens 截断而不完整，尝试修复：
+        # 找到最后一个完整的 "}," 或 "}" 对象结尾，截断后闭合数组
+        last_complete = raw.rfind("}")
+        if last_complete > 0:
+            truncated = raw[:last_complete + 1]
+            # 确保以 ] 结尾
+            if not truncated.rstrip().endswith("]"):
+                truncated = truncated.rstrip().rstrip(",") + "\n]"
+            try:
+                return json.loads(truncated)
+            except json.JSONDecodeError:
+                pass
+
+        # 最终 fallback：返回空列表而不是崩溃
+        print(f"[LLM WARNING] Failed to parse LLM response as JSON, returning empty list")
+        return []
 
 
 def get_mistake_image_url(object_name: str) -> Optional[str]:
