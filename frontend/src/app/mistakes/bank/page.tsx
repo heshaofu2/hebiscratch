@@ -79,7 +79,7 @@ export default function MistakesPage() {
                     : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-50'
                 }`}
               >
-                {isSelectMode ? '取消' : '选择'}
+                {isSelectMode ? '取消' : '批量操作'}
               </button>
               <Link
                 href="/mistakes/bank/new"
