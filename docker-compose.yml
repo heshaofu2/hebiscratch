@@ -27,7 +27,7 @@ services:
   # FastAPI 后端
   backend:
     build:
-      context: ./backend-python
+      context: ./backend
       dockerfile: Dockerfile
     container_name: scratch-backend
     environment:

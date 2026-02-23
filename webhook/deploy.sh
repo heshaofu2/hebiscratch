@@ -43,7 +43,7 @@ RESTART_NGINX=false
 for file in $CHANGED_FILES; do
     case "$file" in
         frontend/*)   BUILD_FRONTEND=true ;;
-        backend-python/*) BUILD_BACKEND=true ;;
+        backend/*) BUILD_BACKEND=true ;;
         webhook/*)    BUILD_WEBHOOK=true ;;
         nginx/*)      RESTART_NGINX=true ;;
         docker-compose.yml) BUILD_FRONTEND=true; BUILD_BACKEND=true; BUILD_WEBHOOK=true; RESTART_NGINX=true ;;

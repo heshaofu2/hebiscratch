@@ -7,7 +7,7 @@
 ```
 scratch/
 ├── frontend/           # Next.js 前端
-├── backend-python/     # FastAPI 后端
+├── backend/     # FastAPI 后端
 ├── nginx/              # Nginx 配置
 ├── docker-compose.yml  # 生产环境部署
 └── docker-compose.dev.yml  # 本地开发
@@ -46,7 +46,7 @@ docker-compose -f docker-compose.dev.yml up -d
 2. **启动后端**
 
 ```bash
-cd backend-python
+cd backend
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -e .

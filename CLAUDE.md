@@ -15,7 +15,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 docker-compose -f docker-compose.dev.yml up -d
 
 # 后端 (FastAPI, port 3001)
-cd backend-python && source .venv/bin/activate
+cd backend && source .venv/bin/activate
 pip install -e .
 python run.py
 
@@ -27,7 +27,7 @@ cd frontend && npm run lint
 cd frontend && npm run build
 
 # 后端测试 (pytest + pytest-asyncio)
-cd backend-python && pytest tests/ -v
+cd backend && pytest tests/ -v
 ```
 
 ### 快捷启动脚本
@@ -71,7 +71,7 @@ cd backend-python && pytest tests/ -v
 
 ## 核心架构模式
 
-### 后端依赖注入 (`backend-python/app/api/deps.py`)
+### 后端依赖注入 (`backend/app/api/deps.py`)
 
 通过 `Annotated[Model, Depends(...)]` 实现统一的认证和资源所有权校验，每个 Owned* 依赖自动处理 404/403：
 
@@ -128,7 +128,7 @@ Paper        → owner→Link[User], questions[](MistakeEntry ID 有序列表)
 
 存储：项目文件 → `MinIO: projects/{id}/project.sb3`，错题图片 → `MinIO: mistakes/{user_id}/{image_id}.png`
 
-### 应用生命周期 (`backend-python/app/main.py`)
+### 应用生命周期 (`backend/app/main.py`)
 
 FastAPI Lifespan 在启动时：初始化 MongoDB (Beanie)、初始化 MinIO 存储服务、创建默认 admin 账号 (admin/admin)。
 

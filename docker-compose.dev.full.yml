@@ -28,7 +28,7 @@ services:
   # FastAPI 后端（开发模式）
   backend:
     build:
-      context: ./backend-python
+      context: ./backend
       dockerfile: Dockerfile.dev
     container_name: scratch-backend-dev
     ports:
@@ -54,9 +54,9 @@ services:
       - AI_MAX_TOKENS=${AI_MAX_TOKENS:-4096}
       - AI_TEMPERATURE=${AI_TEMPERATURE:-0.3}
     volumes:
-      - ./backend-python/app:/app/app:cached
-      - ./backend-python/run.py:/app/run.py:cached
-      - ./backend-python/prompts:/app/prompts:cached
+      - ./backend/app:/app/app:cached
+      - ./backend/run.py:/app/run.py:cached
+      - ./backend/prompts:/app/prompts:cached
     depends_on:
       - mongo
       - redis

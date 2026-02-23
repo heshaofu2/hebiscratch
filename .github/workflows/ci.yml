@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: backend-python
+        working-directory: backend
 
     steps:
       - uses: actions/checkout@v4
@@ -97,7 +97,7 @@ jobs:
       - name: Build backend image
         uses: docker/build-push-action@v5
         with:
-          context: ./backend-python
+          context: ./backend
           push: false
           tags: scratch-backend:test
           cache-from: type=gha

@@ -20,7 +20,7 @@
 ```
 scratch/                          # 主仓库 (GitHub: heshaofu2/hebiscratch)
 ├── frontend/                     # Next.js 前端
-├── backend-python/               # FastAPI 后端
+├── backend/               # FastAPI 后端
 ├── nginx/                        # Nginx 配置
 ├── docker-compose.yml            # 生产环境 Docker 配置
 ├── docker-compose.dev.full.yml   # 开发环境 Docker 配置
