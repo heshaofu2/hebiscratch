@@ -8,7 +8,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from app.api import api_router
 from app.core.config import get_settings
 from app.core.security import hash_password
-from app.models import User, Project, MistakeEntry
+from app.models import User, Project, MistakeEntry, Paper
 from app.services import get_storage_service
 
 settings = get_settings()
@@ -24,7 +24,7 @@ async def lifespan(app: FastAPI):
     client = AsyncIOMotorClient(settings.mongodb_url)
     await init_beanie(
         database=client[settings.mongodb_db_name],
-        document_models=[User, Project, MistakeEntry],
+        document_models=[User, Project, MistakeEntry, Paper],
     )
     print(f"Connected to MongoDB: {settings.mongodb_db_name}")
 

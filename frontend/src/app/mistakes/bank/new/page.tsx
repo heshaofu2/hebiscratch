@@ -33,7 +33,7 @@ export default function NewMistakePage() {
 
   const handleManualSubmit = async (data: MistakeCreateData) => {
     await createMistake(data);
-    router.push('/mistakes');
+    router.push('/mistakes/bank');
   };
 
   const handleFileSelected = async (file: File) => {
@@ -47,7 +47,7 @@ export default function NewMistakePage() {
   const handleBatchSave = async (data: MistakeBatchCreateData) => {
     await createBatch(data);
     clearRecognitionResult();
-    router.push('/mistakes');
+    router.push('/mistakes/bank');
   };
 
   return (

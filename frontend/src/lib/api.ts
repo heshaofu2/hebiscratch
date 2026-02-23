@@ -19,6 +19,10 @@ import type {
   MistakeBatchCreateData,
   ImageRecognitionResult,
   MistakeStats,
+  PaperListItem,
+  Paper,
+  PaperCreateData,
+  PaperUpdateData,
 } from '@/types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
@@ -284,6 +288,41 @@ export const mistakesApi = {
   getSourceImageUrl: async (id: string): Promise<string> => {
     const response = await api.get(`/mistakes/${id}/source-image`, { responseType: 'blob' });
     return URL.createObjectURL(response.data);
+  },
+};
+
+// Papers API
+export const papersApi = {
+  list: async (params?: {
+    subject?: string;
+    search?: string;
+  }): Promise<PaperListItem[]> => {
+    const response = await api.get<PaperListItem[]>('/papers', { params });
+    return response.data;
+  },
+
+  get: async (id: string): Promise<Paper> => {
+    const response = await api.get<Paper>(`/papers/${id}`);
+    return response.data;
+  },
+
+  create: async (data: PaperCreateData): Promise<PaperListItem> => {
+    const response = await api.post<PaperListItem>('/papers', data);
+    return response.data;
+  },
+
+  update: async (id: string, data: PaperUpdateData): Promise<Paper> => {
+    const response = await api.put<Paper>(`/papers/${id}`, data);
+    return response.data;
+  },
+
+  delete: async (id: string): Promise<void> => {
+    await api.delete(`/papers/${id}`);
+  },
+
+  addQuestions: async (id: string, questionIds: string[]): Promise<{ added: number; total: number }> => {
+    const response = await api.post<{ added: number; total: number }>(`/papers/${id}/questions`, { questions: questionIds });
+    return response.data;
   },
 };
 

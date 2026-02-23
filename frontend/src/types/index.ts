@@ -205,3 +205,39 @@ export interface MistakeStats {
   unmastered: number;
   subjects: Record<string, number>;
 }
+
+// ── 试卷类型 ──────────────────────────────────
+
+export interface PaperListItem {
+  _id: string;
+  title: string;
+  description: string;
+  subject?: string;
+  questionCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Paper {
+  _id: string;
+  title: string;
+  description: string;
+  subject?: string;
+  questions: MistakeEntry[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PaperCreateData {
+  title: string;
+  description?: string;
+  subject?: string;
+  questions: string[];
+}
+
+export interface PaperUpdateData {
+  title?: string;
+  description?: string;
+  subject?: string;
+  questions?: string[];
+}

@@ -6,6 +6,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.core.security import decode_access_token
 from app.models import User, Project, MistakeEntry
+from app.models.paper import Paper
 
 security = HTTPBearer()
 
@@ -134,3 +135,40 @@ async def get_mistake_with_ownership(
 
 
 OwnedMistake = Annotated[MistakeEntry, Depends(get_mistake_with_ownership)]
+
+
+async def get_paper_with_ownership(
+    paper_id: str,
+    current_user: CurrentUser,
+) -> Paper:
+    """获取试卷并验证所有权"""
+    try:
+        obj_id = PydanticObjectId(paper_id)
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="无效的试卷 ID",
+        )
+
+    paper = await Paper.get(obj_id)
+
+    if paper is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="试卷不存在",
+        )
+
+    await paper.fetch_link(Paper.owner)
+
+    if current_user.role == "admin":
+        return paper
+    if paper.owner.id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="无权访问该试卷",
+        )
+
+    return paper
+
+
+OwnedPaper = Annotated[Paper, Depends(get_paper_with_ownership)]

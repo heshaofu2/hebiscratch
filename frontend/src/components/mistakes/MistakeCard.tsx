@@ -87,7 +87,7 @@ export function MistakeCard({
 
   return (
     <Link
-      href={`/mistakes/${mistake._id}`}
+      href={`/mistakes/bank/${mistake._id}`}
       className="block bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md hover:border-indigo-200 transition group"
     >
       {cardContent}

@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { useMistakesStore } from '@/store/mistakes';
 import { MistakeCard } from '@/components/mistakes/MistakeCard';
 import { MistakeStats } from '@/components/mistakes/MistakeStats';
-import { SubjectTagFilter } from '@/components/mistakes/SubjectTagFilter';
+import { MistakeBrowser } from '@/components/mistakes/MistakeBrowser';
 import {
   Dialog,
   DialogContent,
@@ -14,39 +14,33 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
+import { AddToPaperDialog } from '@/components/papers/AddToPaperDialog';
+import type { MistakeListItem } from '@/types';
 
 export default function MistakesPage() {
   const {
-    mistakes,
     stats,
-    isLoading,
-    subjectFilter,
-    masteredFilter,
-    searchQuery,
     isSelectMode,
     selectedIds,
-    fetchMistakes,
     fetchStats,
-    setSubjectFilter,
-    setMasteredFilter,
-    setSearchQuery,
     toggleSelectMode,
     toggleSelect,
-    selectAll,
+    selectAllFromList,
     deselectAll,
     batchDelete,
     batchUpdateMastered,
   } = useMistakesStore();
 
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showAddToPaperDialog, setShowAddToPaperDialog] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  // 当前可见的题目列表（用于全选操作）
+  const currentMistakesRef = useRef<MistakeListItem[]>([]);
 
   useEffect(() => {
     fetchStats();
   }, [fetchStats]);
-
-  useEffect(() => {
-    fetchMistakes();
-  }, [fetchMistakes, subjectFilter, masteredFilter, searchQuery]);
 
   const selectedCount = selectedIds.size;
   const selectedArray = Array.from(selectedIds);
@@ -54,6 +48,12 @@ export default function MistakesPage() {
   const handleBatchDelete = async () => {
     setShowDeleteDialog(false);
     await batchDelete(selectedArray);
+    setRefreshKey(Date.now());
+  };
+
+  const handleBatchMastered = async (isMastered: boolean) => {
+    await batchUpdateMastered(selectedArray, isMastered);
+    setRefreshKey(Date.now());
   };
 
   return (
@@ -64,38 +64,13 @@ export default function MistakesPage() {
           <MistakeStats stats={stats} />
         </div>
 
-        {/* 筛选栏 */}
-        <div className="space-y-3 mb-6">
-          <SubjectTagFilter selected={subjectFilter} onChange={setSubjectFilter} />
-
-          {/* 状态标签 */}
-          <div className="flex items-center gap-2">
-            {([
-              { value: 'all', label: '全部状态' },
-              { value: 'false', label: '未掌握' },
-              { value: 'true', label: '已掌握' },
-            ] as const).map(({ value, label }) => (
-              <button
-                key={value}
-                onClick={() => setMasteredFilter(value)}
-                className={`px-3 py-1 rounded-full text-xs font-medium transition ${
-                  masteredFilter === value
-                    ? value === 'true'
-                      ? 'bg-green-100 text-green-700 ring-1 ring-green-300'
-                      : value === 'false'
-                        ? 'bg-orange-100 text-orange-700 ring-1 ring-orange-300'
-                        : 'bg-indigo-100 text-indigo-700 ring-1 ring-indigo-300'
-                    : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-
-          {/* 操作栏 + 搜索框 */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div className="flex items-center gap-2">
+        {/* 题库浏览器 */}
+        <MistakeBrowser
+          showMasteredFilter
+          refreshKey={refreshKey}
+          onDataLoaded={(list) => { currentMistakesRef.current = list; }}
+          toolbarLeft={
+            <>
               <button
                 onClick={toggleSelectMode}
                 className={`shrink-0 px-4 py-2 text-sm font-medium rounded-lg transition ${
@@ -107,67 +82,56 @@ export default function MistakesPage() {
                 {isSelectMode ? '取消' : '选择'}
               </button>
               <Link
-                href="/mistakes/new"
+                href="/mistakes/bank/new"
                 className="shrink-0 px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition"
               >
                 添加题目
               </Link>
-            </div>
-            <div className="hidden lg:block" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="搜索题目..."
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            </>
+          }
+          listClassName="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+          renderItem={(m) => (
+            <MistakeCard
+              key={m._id}
+              mistake={m}
+              isSelectMode={isSelectMode}
+              isSelected={selectedIds.has(m._id)}
+              onToggleSelect={toggleSelect}
             />
-          </div>
-        </div>
-
-        {/* 错题列表 */}
-        {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[0, 1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="bg-white rounded-xl p-5 shadow-sm animate-pulse">
-                <div className="h-4 bg-gray-200 rounded w-16 mb-3" />
-                <div className="space-y-2">
-                  <div className="h-3 bg-gray-200 rounded" />
-                  <div className="h-3 bg-gray-200 rounded w-3/4" />
+          )}
+          renderLoading={() => (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[0, 1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="bg-white rounded-xl p-5 shadow-sm animate-pulse">
+                  <div className="h-4 bg-gray-200 rounded w-16 mb-3" />
+                  <div className="space-y-2">
+                    <div className="h-3 bg-gray-200 rounded" />
+                    <div className="h-3 bg-gray-200 rounded w-3/4" />
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        ) : mistakes.length === 0 ? (
-          <div className="text-center py-20">
-            <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            <p className="text-gray-500 mb-4">还没有错题记录</p>
-            <Link
-              href="/mistakes/new"
-              className="inline-block px-6 py-2.5 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition"
-            >
-              添加第一道错题
-            </Link>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {mistakes.map((m) => (
-              <MistakeCard
-                key={m._id}
-                mistake={m}
-                isSelectMode={isSelectMode}
-                isSelected={selectedIds.has(m._id)}
-                onToggleSelect={toggleSelect}
-              />
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
+          renderEmpty={() => (
+            <div className="text-center py-20">
+              <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <p className="text-gray-500 mb-4">还没有错题记录</p>
+              <Link
+                href="/mistakes/bank/new"
+                className="inline-block px-6 py-2.5 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition"
+              >
+                添加第一道错题
+              </Link>
+            </div>
+          )}
+        />
 
         {/* 浮动添加按钮 */}
         {!isSelectMode && (
           <Link
-            href="/mistakes/new"
+            href="/mistakes/bank/new"
             className="fixed bottom-8 right-8 w-14 h-14 bg-indigo-600 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-indigo-700 transition hover:scale-105"
             title="添加错题"
           >
@@ -181,10 +145,17 @@ export default function MistakesPage() {
         {isSelectMode && (
           <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-white/95 backdrop-blur border border-gray-200 rounded-2xl shadow-xl px-5 py-3 flex items-center gap-3">
             <button
-              onClick={selectedCount === mistakes.length ? deselectAll : selectAll}
+              onClick={() => {
+                const currentIds = currentMistakesRef.current.map((m) => m._id);
+                if (selectedCount === currentIds.length) {
+                  deselectAll();
+                } else {
+                  selectAllFromList(currentIds);
+                }
+              }}
               className="px-3 py-1.5 text-sm text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition"
             >
-              {selectedCount === mistakes.length ? '取消全选' : '全选'}
+              {selectedCount === currentMistakesRef.current.length ? '取消全选' : '全选'}
             </button>
 
             <span className="text-sm text-gray-400">|</span>
@@ -196,7 +167,7 @@ export default function MistakesPage() {
             <span className="text-sm text-gray-400">|</span>
 
             <button
-              onClick={() => batchUpdateMastered(selectedArray, true)}
+              onClick={() => handleBatchMastered(true)}
               disabled={selectedCount === 0}
               className="px-3 py-1.5 text-sm text-green-700 hover:bg-green-50 rounded-lg transition disabled:opacity-40 disabled:cursor-not-allowed"
             >
@@ -204,11 +175,19 @@ export default function MistakesPage() {
             </button>
 
             <button
-              onClick={() => batchUpdateMastered(selectedArray, false)}
+              onClick={() => handleBatchMastered(false)}
               disabled={selectedCount === 0}
               className="px-3 py-1.5 text-sm text-orange-700 hover:bg-orange-50 rounded-lg transition disabled:opacity-40 disabled:cursor-not-allowed"
             >
               标记未掌握
+            </button>
+
+            <button
+              onClick={() => setShowAddToPaperDialog(true)}
+              disabled={selectedCount === 0}
+              className="px-3 py-1.5 text-sm text-indigo-600 hover:bg-indigo-50 rounded-lg transition disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              添加到试卷
             </button>
 
             <button
@@ -256,6 +235,14 @@ export default function MistakesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* 添加到试卷对话框 */}
+      <AddToPaperDialog
+        open={showAddToPaperDialog}
+        onOpenChange={setShowAddToPaperDialog}
+        questionIds={selectedArray}
+        onSuccess={() => toggleSelectMode()}
+      />
     </div>
   );
 }

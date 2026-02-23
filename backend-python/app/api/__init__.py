@@ -5,6 +5,7 @@ from .auth import router as auth_router
 from .projects import router as projects_router
 from .share import router as share_router
 from .mistakes import router as mistakes_router
+from .papers import router as papers_router
 
 api_router = APIRouter()
 
@@ -13,3 +14,4 @@ api_router.include_router(projects_router, prefix="/projects", tags=["项目"])
 api_router.include_router(share_router, prefix="/share", tags=["分享"])
 api_router.include_router(admin_router, prefix="/admin", tags=["管理"])
 api_router.include_router(mistakes_router, prefix="/mistakes", tags=["错题本"])
+api_router.include_router(papers_router, prefix="/papers", tags=["试卷"])

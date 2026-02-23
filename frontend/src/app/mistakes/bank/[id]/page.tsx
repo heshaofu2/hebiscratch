@@ -81,7 +81,7 @@ export default function MistakeDetailPage() {
   const handleDelete = async () => {
     if (!mistake) return;
     await deleteMistake(mistake._id);
-    router.push('/mistakes');
+    router.push('/mistakes/bank');
   };
 
   const handleToggleMastered = async () => {
@@ -105,7 +105,7 @@ export default function MistakeDetailPage() {
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => router.push('/mistakes')}
+              onClick={() => router.push('/mistakes/bank')}
               className="text-gray-500 hover:text-gray-700"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

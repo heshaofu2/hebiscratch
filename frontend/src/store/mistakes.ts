@@ -47,6 +47,7 @@ interface MistakesState {
   toggleSelectMode: () => void;
   toggleSelect: (id: string) => void;
   selectAll: () => void;
+  selectAllFromList: (ids: string[]) => void;
   deselectAll: () => void;
   batchDelete: (ids: string[]) => Promise<void>;
   batchUpdateMastered: (ids: string[], isMastered: boolean) => Promise<void>;
@@ -221,6 +222,10 @@ export const useMistakesStore = create<MistakesState>((set, get) => ({
     set((state) => ({
       selectedIds: new Set(state.mistakes.map((m) => m._id)),
     }));
+  },
+
+  selectAllFromList: (ids: string[]) => {
+    set({ selectedIds: new Set(ids) });
   },
 
   deselectAll: () => {
