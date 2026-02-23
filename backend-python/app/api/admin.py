@@ -54,6 +54,8 @@ async def list_users(
             avatar=user.avatar,
             role=user.role,
             isActive=user.is_active,
+            recognizeLimit=user.recognize_limit,
+            recognizeCount=user.recognize_count,
             createdAt=user.created_at,
         )
         for user in users
@@ -83,6 +85,7 @@ async def create_user(_: AdminUser, data: UserCreate):
         password_hash=hash_password(data.password),
         role=data.role,
         is_active=data.is_active,
+        recognize_limit=data.recognize_limit,
     )
     await user.insert()
 
@@ -92,6 +95,8 @@ async def create_user(_: AdminUser, data: UserCreate):
         avatar=user.avatar,
         role=user.role,
         isActive=user.is_active,
+        recognizeLimit=user.recognize_limit,
+        recognizeCount=user.recognize_count,
         createdAt=user.created_at,
     )
 
@@ -122,6 +127,8 @@ async def get_user(_: AdminUser, user_id: str):
         avatar=user.avatar,
         role=user.role,
         isActive=user.is_active,
+        recognizeLimit=user.recognize_limit,
+        recognizeCount=user.recognize_count,
         projectCount=project_count,
         createdAt=user.created_at,
         updatedAt=user.updated_at,
@@ -161,6 +168,9 @@ async def update_user(_: AdminUser, user_id: str, data: UserUpdate):
     if data.is_active is not None:
         user.is_active = data.is_active
 
+    if "recognize_limit" in data.model_fields_set:
+        user.recognize_limit = data.recognize_limit
+
     user.updated_at = datetime.now(timezone.utc)
     await user.save()
 
@@ -170,6 +180,8 @@ async def update_user(_: AdminUser, user_id: str, data: UserUpdate):
         avatar=user.avatar,
         role=user.role,
         isActive=user.is_active,
+        recognizeLimit=user.recognize_limit,
+        recognizeCount=user.recognize_count,
         createdAt=user.created_at,
     )
 

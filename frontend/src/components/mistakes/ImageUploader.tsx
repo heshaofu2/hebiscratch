@@ -5,9 +5,10 @@ import { useState, useRef, useCallback } from 'react';
 interface ImageUploaderProps {
   onFileSelected: (file: File) => void;
   isLoading?: boolean;
+  disabled?: boolean;
 }
 
-export function ImageUploader({ onFileSelected, isLoading = false }: ImageUploaderProps) {
+export function ImageUploader({ onFileSelected, isLoading = false, disabled = false }: ImageUploaderProps) {
   const [preview, setPreview] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -33,14 +34,16 @@ export function ImageUploader({ onFileSelected, isLoading = false }: ImageUpload
   return (
     <div className="space-y-4">
       <div
-        onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+        onDragOver={(e) => { if (!disabled) { e.preventDefault(); setIsDragging(true); } }}
         onDragLeave={() => setIsDragging(false)}
-        onDrop={handleDrop}
-        onClick={() => inputRef.current?.click()}
-        className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition ${
-          isDragging
-            ? 'border-indigo-500 bg-indigo-50'
-            : 'border-gray-300 hover:border-indigo-400 hover:bg-gray-50'
+        onDrop={(e) => { if (!disabled) handleDrop(e); else e.preventDefault(); }}
+        onClick={() => { if (!disabled) inputRef.current?.click(); }}
+        className={`border-2 border-dashed rounded-xl p-8 text-center transition ${
+          disabled
+            ? 'border-gray-200 bg-gray-50 cursor-not-allowed opacity-60'
+            : isDragging
+              ? 'border-indigo-500 bg-indigo-50 cursor-pointer'
+              : 'border-gray-300 hover:border-indigo-400 hover:bg-gray-50 cursor-pointer'
         } ${isLoading ? 'pointer-events-none opacity-60' : ''}`}
       >
         <input

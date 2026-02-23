@@ -30,6 +30,7 @@ export default function AdminUsersPage() {
     password: '',
     role: 'user',
     is_active: true,
+    recognize_limit: 10 as number | null,
   });
   const [newPassword, setNewPassword] = useState('');
   const [searchInput, setSearchInput] = useState('');
@@ -45,13 +46,14 @@ export default function AdminUsersPage() {
     setSelectedUser(user || null);
 
     if (type === 'create') {
-      setFormData({ username: '', password: '', role: 'user', is_active: true });
+      setFormData({ username: '', password: '', role: 'user', is_active: true, recognize_limit: 10 });
     } else if (type === 'edit' && user) {
       setFormData({
         username: user.username,
         password: '',
         role: user.role,
         is_active: user.isActive,
+        recognize_limit: user.recognizeLimit,
       });
     } else if (type === 'resetPassword') {
       setNewPassword('');
@@ -71,7 +73,13 @@ export default function AdminUsersPage() {
     }
 
     try {
-      await createUser(formData as UserCreateData);
+      await createUser({
+        username: formData.username,
+        password: formData.password,
+        role: formData.role,
+        is_active: formData.is_active,
+        recognize_limit: formData.recognize_limit,
+      });
       closeModal();
     } catch (err: unknown) {
       const error = err as { response?: { data?: { detail?: string } } };
@@ -91,6 +99,9 @@ export default function AdminUsersPage() {
     }
     if (formData.is_active !== selectedUser.isActive) {
       data.is_active = formData.is_active;
+    }
+    if (formData.recognize_limit !== selectedUser.recognizeLimit) {
+      data.recognize_limit = formData.recognize_limit;
     }
 
     if (Object.keys(data).length === 0) {
@@ -202,6 +213,9 @@ export default function AdminUsersPage() {
                 状态
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                识别配额
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 创建时间
               </th>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -212,13 +226,13 @@ export default function AdminUsersPage() {
           <tbody className="bg-white divide-y divide-gray-200">
             {isLoading ? (
               <tr>
-                <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
                   加载中...
                 </td>
               </tr>
             ) : users.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
                   暂无用户
                 </td>
               </tr>
@@ -255,6 +269,11 @@ export default function AdminUsersPage() {
                       }`}
                     >
                       {user.isActive ? '正常' : '禁用'}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                    <span className="font-mono">
+                      {user.recognizeCount} / {user.recognizeLimit ?? '无限'}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -393,6 +412,46 @@ export default function AdminUsersPage() {
                   >
                     启用账号
                   </label>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    图片识别配额
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      id="unlimited_recognize"
+                      checked={formData.recognize_limit === null}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          recognize_limit: e.target.checked ? null : 10,
+                        })
+                      }
+                      className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
+                    />
+                    <label
+                      htmlFor="unlimited_recognize"
+                      className="text-sm text-gray-700"
+                    >
+                      无限制
+                    </label>
+                    {formData.recognize_limit !== null && (
+                      <input
+                        type="number"
+                        min={0}
+                        value={formData.recognize_limit}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            recognize_limit: parseInt(e.target.value) || 0,
+                          })
+                        }
+                        className="w-24 px-3 py-1.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm"
+                      />
+                    )}
+                  </div>
                 </div>
               </div>
             )}

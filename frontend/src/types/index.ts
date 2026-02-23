@@ -4,6 +4,8 @@ export interface User {
   avatar?: string;
   role: string;
   isActive: boolean;
+  recognizeLimit: number | null;
+  recognizeCount: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -47,6 +49,8 @@ export interface AdminUser {
   avatar?: string;
   role: string;
   isActive: boolean;
+  recognizeLimit: number | null;
+  recognizeCount: number;
   createdAt: string;
 }
 
@@ -68,12 +72,14 @@ export interface UserCreateData {
   password: string;
   role?: string;
   is_active?: boolean;
+  recognize_limit?: number | null;
 }
 
 export interface UserUpdateData {
   username?: string;
   role?: string;
   is_active?: boolean;
+  recognize_limit?: number | null;
 }
 
 // Admin Project types

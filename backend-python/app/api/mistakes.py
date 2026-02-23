@@ -131,6 +131,16 @@ async def recognize_image(
     file: UploadFile = File(...),
 ):
     """上传图片进行 AI 识别"""
+    # 配额检查
+    if (
+        current_user.recognize_limit is not None
+        and current_user.recognize_count >= current_user.recognize_limit
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"已达到图片识别上限（{current_user.recognize_limit} 次），请联系管理员提升额度",
+        )
+
     if file.content_type not in ALLOWED_IMAGE_TYPES:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -152,6 +162,11 @@ async def recognize_image(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"AI 识别失败: {str(e)}",
         )
+
+    # LLM 识别成功后才递增配额计数器
+    current_user.recognize_count += 1
+    current_user.updated_at = datetime.now(timezone.utc)
+    await current_user.save()
 
     # 根据 bbox 裁剪每道题的图片区域
     user_id = str(current_user.id)

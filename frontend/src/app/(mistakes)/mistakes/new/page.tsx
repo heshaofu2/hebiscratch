@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMistakesStore } from '@/store/mistakes';
+import { useAuthStore } from '@/store/auth';
 import { MistakeForm } from '@/components/mistakes/MistakeForm';
 import { ImageUploader } from '@/components/mistakes/ImageUploader';
 import { ImageRecognitionPanel } from '@/components/mistakes/ImageRecognitionPanel';
@@ -14,6 +15,7 @@ export default function NewMistakePage() {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>('image');
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+  const user = useAuthStore((s) => s.user);
 
   const {
     recognitionResult,
@@ -25,6 +27,10 @@ export default function NewMistakePage() {
     clearRecognitionResult,
   } = useMistakesStore();
 
+  const recognizeLimit = user?.recognizeLimit ?? null;
+  const recognizeCount = user?.recognizeCount ?? 0;
+  const isQuotaExhausted = recognizeLimit !== null && recognizeCount >= recognizeLimit;
+
   const handleManualSubmit = async (data: MistakeCreateData) => {
     await createMistake(data);
     router.push('/mistakes');
@@ -34,6 +40,8 @@ export default function NewMistakePage() {
     setImagePreviewUrl(URL.createObjectURL(file));
     clearRecognitionResult();
     await recognizeImage(file);
+    // 识别成功后刷新用户信息以更新配额显示
+    useAuthStore.getState().fetchUser();
   };
 
   const handleBatchSave = async (data: MistakeBatchCreateData) => {
@@ -90,7 +98,18 @@ export default function NewMistakePage() {
           <div className="space-y-6">
             {!recognitionResult && (
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <ImageUploader onFileSelected={handleFileSelected} isLoading={isRecognizing} />
+                {recognizeLimit !== null && (
+                  <div className={`mb-4 text-sm ${isQuotaExhausted ? 'text-red-600' : 'text-gray-500'}`}>
+                    {isQuotaExhausted
+                      ? `图片识别额度已用完（${recognizeCount} / ${recognizeLimit}），请联系管理员提升额度`
+                      : `图片识别额度：${recognizeCount} / ${recognizeLimit}`}
+                  </div>
+                )}
+                <ImageUploader
+                  onFileSelected={handleFileSelected}
+                  isLoading={isRecognizing}
+                  disabled={isQuotaExhausted}
+                />
               </div>
             )}
             {recognitionResult && imagePreviewUrl && (

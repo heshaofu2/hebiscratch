@@ -12,6 +12,8 @@ class UserListItem(BaseModel):
     avatar: Optional[str] = None
     role: str
     is_active: bool = Field(..., alias="isActive")
+    recognize_limit: Optional[int] = Field(None, alias="recognizeLimit")
+    recognize_count: int = Field(0, alias="recognizeCount")
     created_at: datetime = Field(..., alias="createdAt")
 
     class Config:
@@ -26,6 +28,8 @@ class UserDetail(BaseModel):
     avatar: Optional[str] = None
     role: str
     is_active: bool = Field(..., alias="isActive")
+    recognize_limit: Optional[int] = Field(None, alias="recognizeLimit")
+    recognize_count: int = Field(0, alias="recognizeCount")
     project_count: int = Field(..., alias="projectCount")
     created_at: datetime = Field(..., alias="createdAt")
     updated_at: datetime = Field(..., alias="updatedAt")
@@ -41,6 +45,7 @@ class UserCreate(BaseModel):
     password: str = Field(..., min_length=6, max_length=50)
     role: str = Field(default="user", pattern="^(user|admin)$")
     is_active: bool = True
+    recognize_limit: Optional[int] = Field(default=10, ge=0)
 
 
 class UserUpdate(BaseModel):
@@ -49,6 +54,7 @@ class UserUpdate(BaseModel):
     username: Optional[str] = Field(None, min_length=2, max_length=20)
     role: Optional[str] = Field(None, pattern="^(user|admin)$")
     is_active: Optional[bool] = None
+    recognize_limit: Optional[int] = Field(None, ge=0)
 
 
 class PasswordReset(BaseModel):

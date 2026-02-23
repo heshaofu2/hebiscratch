@@ -184,8 +184,13 @@ export const useMistakesStore = create<MistakesState>((set, get) => ({
       const result = await mistakesApi.recognizeImage(file);
       set({ recognitionResult: result, isRecognizing: false });
       return result;
-    } catch (err) {
-      set({ error: (err as Error).message, isRecognizing: false });
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { status?: number; data?: { detail?: string } } };
+      const message =
+        axiosErr.response?.status === 429
+          ? axiosErr.response.data?.detail || '已达到图片识别上限，请联系管理员提升额度'
+          : (err as Error).message;
+      set({ error: message, isRecognizing: false });
       throw err;
     }
   },
