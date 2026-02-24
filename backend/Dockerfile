@@ -24,6 +24,7 @@ RUN pip install --no-cache-dir -e .
 
 # 复制应用代码
 COPY app ./app
+COPY prompts ./prompts
 COPY run.py ./
 
 # 暴露端口

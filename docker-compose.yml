@@ -45,6 +45,11 @@ services:
       - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-minioadmin}
       - MINIO_BUCKET=scratch-assets
       - MINIO_SECURE=false
+      - AI_MODEL=${AI_MODEL:-gemini/gemini-3-pro-preview}
+      - AI_API_KEY=${AI_API_KEY:-}
+      - AI_API_BASE=${AI_API_BASE:-}
+      - AI_MAX_TOKENS=${AI_MAX_TOKENS:-16384}
+      - AI_TEMPERATURE=${AI_TEMPERATURE:-0.3}
     depends_on:
       - mongo
       - redis
