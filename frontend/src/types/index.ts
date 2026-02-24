@@ -105,7 +105,7 @@ export interface PaginatedProjects {
   totalPages: number;
 }
 
-// ── 错题本类型 ──────────────────────────────────
+// ── 题库类型 ──────────────────────────────────
 
 export const SUBJECTS = [
   '语文', '数学', '英语', '物理', '化学',
@@ -114,7 +114,7 @@ export const SUBJECTS = [
 
 export type Subject = (typeof SUBJECTS)[number];
 
-export interface MistakeEntry {
+export interface QuestionEntry {
   _id: string;
   subject: string;
   question: string;
@@ -133,7 +133,7 @@ export interface MistakeEntry {
   updatedAt: string;
 }
 
-export interface MistakeListItem {
+export interface QuestionListItem {
   _id: string;
   subject: string;
   question: string;
@@ -144,7 +144,7 @@ export interface MistakeListItem {
   createdAt: string;
 }
 
-export interface MistakeCreateData {
+export interface QuestionCreateData {
   subject: string;
   question: string;
   wrongAnswer?: string;
@@ -153,7 +153,7 @@ export interface MistakeCreateData {
   knowledgePoints?: string[];
 }
 
-export interface MistakeUpdateData {
+export interface QuestionUpdateData {
   subject?: string;
   question?: string;
   wrongAnswer?: string;
@@ -163,7 +163,7 @@ export interface MistakeUpdateData {
   isMastered?: boolean;
 }
 
-export interface MistakeBatchCreateData {
+export interface QuestionBatchCreateData {
   items: {
     subject: string;
     question: string;
@@ -199,7 +199,7 @@ export interface ImageRecognitionResult {
   questions: RecognizedQuestion[];
 }
 
-export interface MistakeStats {
+export interface QuestionStats {
   total: number;
   mastered: number;
   unmastered: number;
@@ -223,7 +223,7 @@ export interface Paper {
   title: string;
   description: string;
   subject?: string;
-  questions: MistakeEntry[];
+  questions: QuestionEntry[];
   createdAt: string;
   updatedAt: string;
 }

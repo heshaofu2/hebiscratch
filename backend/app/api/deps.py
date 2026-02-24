@@ -5,9 +5,9 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.core.security import decode_access_token
-from app.models import User, Project, MistakeEntry
+from app.models import User, Project, QuestionEntry
 from app.models.paper import Paper
-from app.repositories.mistake_repo import MistakeRepository
+from app.repositories.question_repo import QuestionRepository
 from app.repositories.paper_repo import PaperRepository
 
 security = HTTPBearer()
@@ -105,49 +105,49 @@ OwnedProject = Annotated[Project, Depends(get_project_with_ownership)]
 # ── Repository 依赖注入 ──────────────────────────
 
 
-def get_mistake_repo() -> MistakeRepository:
-    return MistakeRepository()
+def get_question_repo() -> QuestionRepository:
+    return QuestionRepository()
 
 
 def get_paper_repo(
-    mistake_repo: MistakeRepository = Depends(get_mistake_repo),
+    question_repo: QuestionRepository = Depends(get_question_repo),
 ) -> PaperRepository:
-    return PaperRepository(mistake_repo)
+    return PaperRepository(question_repo)
 
 
-MistakeRepo = Annotated[MistakeRepository, Depends(get_mistake_repo)]
+QuestionRepo = Annotated[QuestionRepository, Depends(get_question_repo)]
 PaperRepo = Annotated[PaperRepository, Depends(get_paper_repo)]
 
 
 # ── 资源所有权依赖（使用 Repository）──────────────
 
 
-async def get_mistake_with_ownership(
-    mistake_id: str,
+async def get_question_with_ownership(
+    question_id: str,
     current_user: CurrentUser,
-    repo: MistakeRepo,
-) -> MistakeEntry:
-    """获取错题并验证所有权"""
-    mistake = await repo.get_by_id(mistake_id)
+    repo: QuestionRepo,
+) -> QuestionEntry:
+    """获取题目并验证所有权"""
+    question = await repo.get_by_id(question_id)
 
-    if mistake is None:
+    if question is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="错题不存在",
+            detail="题目不存在",
         )
 
     if current_user.role == "admin":
-        return mistake
-    if repo.get_owner_id(mistake) != str(current_user.id):
+        return question
+    if repo.get_owner_id(question) != str(current_user.id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="无权访问该错题",
+            detail="无权访问该题目",
         )
 
-    return mistake
+    return question
 
 
-OwnedMistake = Annotated[MistakeEntry, Depends(get_mistake_with_ownership)]
+OwnedQuestion = Annotated[QuestionEntry, Depends(get_question_with_ownership)]
 
 
 async def get_paper_with_ownership(

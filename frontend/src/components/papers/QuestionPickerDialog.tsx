@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { MistakeBrowser } from '@/components/mistakes/MistakeBrowser';
+import { QuestionBrowser } from '@/components/questions/QuestionBrowser';
 import {
   Dialog,
   DialogContent,
@@ -64,7 +64,7 @@ export function QuestionPickerDialog({
         </DialogHeader>
 
         <div className="flex-1 overflow-auto -mx-6 px-6">
-          <MistakeBrowser
+          <QuestionBrowser
             showMasteredFilter
             renderItem={(m) => {
               const isExisting = existingSet.has(m._id);

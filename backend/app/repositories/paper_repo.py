@@ -3,14 +3,14 @@ from beanie import PydanticObjectId
 from app.models.paper import Paper
 from app.models.user import User
 
-from .mistake_repo import MistakeRepository
+from .question_repo import QuestionRepository
 
 
 class PaperRepository:
     """Paper 数据访问层，封装所有 Beanie/MongoDB 操作。"""
 
-    def __init__(self, mistake_repo: MistakeRepository) -> None:
-        self._mistake_repo = mistake_repo
+    def __init__(self, question_repo: QuestionRepository) -> None:
+        self._question_repo = question_repo
 
     # ── 查询 ──────────────────────────────────────
 
@@ -46,7 +46,7 @@ class PaperRepository:
         """展开题目 ID 列表为完整的题目内容，保持顺序。"""
         result: list[dict] = []
         for oid in question_ids:
-            entry = await self._mistake_repo.get_by_id(str(oid))
+            entry = await self._question_repo.get_by_id(str(oid))
             if entry is None:
                 continue
             result.append(entry.to_response())
@@ -55,26 +55,26 @@ class PaperRepository:
     async def validate_question_ids(
         self, raw_ids: list[str], owner_id: str
     ) -> list[PydanticObjectId]:
-        """验证错题 ID 列表：格式合法、存在、且属于指定用户。
+        """验证题目 ID 列表：格式合法、存在、且属于指定用户。
 
         Returns:
             合法的 PydanticObjectId 列表（内部类型，API 层不感知细节）。
 
         Raises:
-            ValueError: ID 格式无效、错题不存在、或无权引用。
-                message 格式为 "code:detail"，如 "400:无效的错题 ID: xxx"。
+            ValueError: ID 格式无效、题目不存在、或无权引用。
+                message 格式为 "code:detail"，如 "400:无效的题目 ID: xxx"。
         """
         result: list[PydanticObjectId] = []
         for raw_id in raw_ids:
             try:
                 oid = PydanticObjectId(raw_id)
             except Exception:
-                raise ValueError(f"400:无效的错题 ID: {raw_id}")
-            entry = await self._mistake_repo.get_by_id(str(oid))
+                raise ValueError(f"400:无效的题目 ID: {raw_id}")
+            entry = await self._question_repo.get_by_id(str(oid))
             if entry is None:
-                raise ValueError(f"404:错题不存在: {raw_id}")
-            if self._mistake_repo.get_owner_id(entry) != owner_id:
-                raise ValueError(f"403:无权引用该错题: {raw_id}")
+                raise ValueError(f"404:题目不存在: {raw_id}")
+            if self._question_repo.get_owner_id(entry) != owner_id:
+                raise ValueError(f"403:无权引用该题目: {raw_id}")
             result.append(oid)
         return result
 

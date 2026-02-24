@@ -76,7 +76,7 @@ export function AddToPaperDialog({
 
   const handleCreateNew = () => {
     onOpenChange(false);
-    router.push(`/mistakes/papers/new?questions=${questionIds.join(',')}`);
+    router.push(`/practice/papers/new?questions=${questionIds.join(',')}`);
   };
 
   return (

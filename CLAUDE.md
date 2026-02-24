@@ -65,8 +65,8 @@ cd backend && pytest tests/ -v
 | 模块 | 前端路由 | 后端路由 | 说明 |
 |------|---------|---------|------|
 | Scratch 编程 | `(scratch)/editor/[[...id]]`, `(scratch)/projects` | `/api/projects`, `/api/share` | 项目编辑、保存、分享 |
-| 错题本 | `mistakes/bank/**` | `/api/mistakes` | 手动录题、AI 图片识别、复习追踪 |
-| 试卷 | `mistakes/papers/**` | `/api/papers` | 从错题组卷、编辑、打印 |
+| 题库 | `practice/questions/**` | `/api/questions` | 手动录题、AI 图片识别、复习追踪 |
+| 试卷 | `practice/papers/**` | `/api/papers` | 从错题组卷、编辑、打印 |
 | 管理后台 | `admin/users`, `admin/projects` | `/api/admin` | 用户管理、项目管理 |
 
 ## 核心架构模式
@@ -79,7 +79,7 @@ cd backend && pytest tests/ -v
 CurrentUser   # JWT 认证 → User
 AdminUser     # JWT + role=="admin" → User
 OwnedProject  # JWT + 项目所有权 → Project (管理员可访问任意)
-OwnedMistake  # JWT + 错题所有权 → MistakeEntry
+OwnedQuestion # JWT + 题目所有权 → QuestionEntry
 OwnedPaper    # JWT + 试卷所有权 → Paper
 ```
 
@@ -95,7 +95,7 @@ Beanie 模型统一使用 `to_response()` / `to_list_response()` 方法手动将
 frontend/src/store/
 ├── auth.ts       # 登录/注册/登出，token 存 Cookie (7天)
 ├── projects.ts   # Scratch 项目 CRUD
-├── mistakes.ts   # 错题本 CRUD + AI 识题
+├── questions.ts  # 题库 CRUD + AI 识题
 ├── papers.ts     # 试卷 CRUD
 └── admin.ts      # 管理后台
 ```
@@ -122,11 +122,11 @@ iframe → 父窗口:  EDITOR_LOADED, EDITOR_READY, PROJECT_LOADED, PROJECT_SAVE
 ```
 User         → username(唯一), role("user"|"admin"), recognize_limit/recognize_count(AI配额)
 Project      → owner→Link[User], storage_path(MinIO), thumbnail(base64), share_token(唯一)
-MistakeEntry → owner→Link[User], source("manual"|"image"), knowledge_points[], is_mastered
-Paper        → owner→Link[User], questions[](MistakeEntry ID 有序列表)
+QuestionEntry → owner→Link[User], source("manual"|"image"), knowledge_points[], is_mastered
+Paper         → owner→Link[User], questions[](QuestionEntry ID 有序列表)
 ```
 
-存储：项目文件 → `MinIO: projects/{id}/project.sb3`，错题图片 → `MinIO: mistakes/{user_id}/{image_id}.png`
+存储：项目文件 → `MinIO: projects/{id}/project.sb3`，题目图片 → `MinIO: questions/{user_id}/{image_id}.png`
 
 ### 应用生命周期 (`backend/app/main.py`)
 
@@ -152,5 +152,5 @@ FastAPI Lifespan 在启动时：初始化 MongoDB (Beanie)、初始化 MinIO 存
 - 项目目前没有自动化测试覆盖，添加新功能时建议手动测试相关 API 端点
 - 所有 API 端点都在 `/api` 前缀下
 - 前端使用 `@/*` 路径别名指向 `./src/*`
-- 前端路由组：`(home)` 首页/认证页，`(scratch)` 编辑器页（各有独立 layout）
+- 前端路由组：`(home)` 首页/认证页，`(scratch)` 编辑器页，`practice` 题库/试卷（各有独立 layout）
 - 后端 Dockerfile 使用阿里云镜像源加速构建

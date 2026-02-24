@@ -74,7 +74,7 @@ export default function HomePage() {
 
           {/* 错题本卡片 */}
           <div
-            onClick={handleCardClick('/mistakes/bank')}
+            onClick={handleCardClick('/practice/questions')}
             role="link"
             tabIndex={0}
             className="group relative bg-gradient-to-br from-indigo-400 to-indigo-600 rounded-2xl p-8 text-white shadow-lg hover:shadow-xl transition hover:-translate-y-1 cursor-pointer"

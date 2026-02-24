@@ -11,7 +11,7 @@ interface PaperCardProps {
 export function PaperCard({ paper }: PaperCardProps) {
   return (
     <Link
-      href={`/mistakes/papers/${paper._id}`}
+      href={`/practice/papers/${paper._id}`}
       className="block bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md hover:border-indigo-200 transition group"
     >
       <div className="flex items-center justify-between mb-3">

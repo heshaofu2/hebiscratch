@@ -1,6 +1,6 @@
 from .user import User
 from .project import Project
-from .mistake import MistakeEntry
+from .question import QuestionEntry
 from .paper import Paper
 
-__all__ = ["User", "Project", "MistakeEntry", "Paper"]
+__all__ = ["User", "Project", "QuestionEntry", "Paper"]

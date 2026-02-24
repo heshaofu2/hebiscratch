@@ -12,13 +12,13 @@ import type {
   UserUpdateData,
   AdminProject,
   PaginatedProjects,
-  MistakeEntry,
-  MistakeListItem,
-  MistakeCreateData,
-  MistakeUpdateData,
-  MistakeBatchCreateData,
+  QuestionEntry,
+  QuestionListItem,
+  QuestionCreateData,
+  QuestionUpdateData,
+  QuestionBatchCreateData,
   ImageRecognitionResult,
-  MistakeStats,
+  QuestionStats,
   PaperListItem,
   Paper,
   PaperCreateData,
@@ -207,53 +207,53 @@ export const adminApi = {
   },
 };
 
-// Mistakes API
-export const mistakesApi = {
+// Questions API
+export const questionsApi = {
   list: async (params?: {
     subject?: string[];
     mastered?: boolean;
     search?: string;
-  }): Promise<MistakeListItem[]> => {
-    const response = await api.get<MistakeListItem[]>('/mistakes', {
+  }): Promise<QuestionListItem[]> => {
+    const response = await api.get<QuestionListItem[]>('/questions', {
       params,
       paramsSerializer: { indexes: null },
     });
     return response.data;
   },
 
-  get: async (id: string): Promise<MistakeEntry> => {
-    const response = await api.get<MistakeEntry>(`/mistakes/${id}`);
+  get: async (id: string): Promise<QuestionEntry> => {
+    const response = await api.get<QuestionEntry>(`/questions/${id}`);
     return response.data;
   },
 
-  create: async (data: MistakeCreateData): Promise<MistakeEntry> => {
-    const response = await api.post<MistakeEntry>('/mistakes', data);
+  create: async (data: QuestionCreateData): Promise<QuestionEntry> => {
+    const response = await api.post<QuestionEntry>('/questions', data);
     return response.data;
   },
 
-  createBatch: async (data: MistakeBatchCreateData): Promise<MistakeEntry[]> => {
-    const response = await api.post<MistakeEntry[]>('/mistakes/batch', data);
+  createBatch: async (data: QuestionBatchCreateData): Promise<QuestionEntry[]> => {
+    const response = await api.post<QuestionEntry[]>('/questions/batch', data);
     return response.data;
   },
 
-  update: async (id: string, data: MistakeUpdateData): Promise<MistakeEntry> => {
-    const response = await api.put<MistakeEntry>(`/mistakes/${id}`, data);
+  update: async (id: string, data: QuestionUpdateData): Promise<QuestionEntry> => {
+    const response = await api.put<QuestionEntry>(`/questions/${id}`, data);
     return response.data;
   },
 
   delete: async (id: string): Promise<void> => {
-    await api.delete(`/mistakes/${id}`);
+    await api.delete(`/questions/${id}`);
   },
 
-  review: async (id: string): Promise<MistakeEntry> => {
-    const response = await api.post<MistakeEntry>(`/mistakes/${id}/review`);
+  review: async (id: string): Promise<QuestionEntry> => {
+    const response = await api.post<QuestionEntry>(`/questions/${id}/review`);
     return response.data;
   },
 
   recognizeImage: async (file: File): Promise<ImageRecognitionResult> => {
     const formData = new FormData();
     formData.append('file', file);
-    const response = await api.post<ImageRecognitionResult>('/mistakes/recognize', formData, {
+    const response = await api.post<ImageRecognitionResult>('/questions/recognize', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
       timeout: 120000, // AI 识别可能较慢
     });
@@ -261,32 +261,32 @@ export const mistakesApi = {
   },
 
   getSubjects: async (): Promise<string[]> => {
-    const response = await api.get<string[]>('/mistakes/subjects');
+    const response = await api.get<string[]>('/questions/subjects');
     return response.data;
   },
 
   batchDelete: async (ids: string[]): Promise<{ deleted: number }> => {
-    const response = await api.post<{ deleted: number }>('/mistakes/batch-delete', { ids });
+    const response = await api.post<{ deleted: number }>('/questions/batch-delete', { ids });
     return response.data;
   },
 
-  batchUpdate: async (ids: string[], update: MistakeUpdateData): Promise<{ updated: number }> => {
-    const response = await api.post<{ updated: number }>('/mistakes/batch-update', { ids, update });
+  batchUpdate: async (ids: string[], update: QuestionUpdateData): Promise<{ updated: number }> => {
+    const response = await api.post<{ updated: number }>('/questions/batch-update', { ids, update });
     return response.data;
   },
 
-  getStats: async (): Promise<MistakeStats> => {
-    const response = await api.get<MistakeStats>('/mistakes/stats');
+  getStats: async (): Promise<QuestionStats> => {
+    const response = await api.get<QuestionStats>('/questions/stats');
     return response.data;
   },
 
   getImageUrl: async (id: string): Promise<string> => {
-    const response = await api.get(`/mistakes/${id}/image`, { responseType: 'blob' });
+    const response = await api.get(`/questions/${id}/image`, { responseType: 'blob' });
     return URL.createObjectURL(response.data);
   },
 
   getSourceImageUrl: async (id: string): Promise<string> => {
-    const response = await api.get(`/mistakes/${id}/source-image`, { responseType: 'blob' });
+    const response = await api.get(`/questions/${id}/source-image`, { responseType: 'blob' });
     return URL.createObjectURL(response.data);
   },
 };
