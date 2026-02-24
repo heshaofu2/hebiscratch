@@ -1,4 +1,4 @@
-from typing import Annotated, Callable, TypeVar
+from typing import Annotated
 
 from beanie import PydanticObjectId
 from fastapi import Depends, HTTPException, status
@@ -7,6 +7,8 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from app.core.security import decode_access_token
 from app.models import User, Project, MistakeEntry
 from app.models.paper import Paper
+from app.repositories.mistake_repo import MistakeRepository
+from app.repositories.paper_repo import PaperRepository
 
 security = HTTPBearer()
 
@@ -100,20 +102,33 @@ async def get_project_with_ownership(
 OwnedProject = Annotated[Project, Depends(get_project_with_ownership)]
 
 
+# ── Repository 依赖注入 ──────────────────────────
+
+
+def get_mistake_repo() -> MistakeRepository:
+    return MistakeRepository()
+
+
+def get_paper_repo(
+    mistake_repo: MistakeRepository = Depends(get_mistake_repo),
+) -> PaperRepository:
+    return PaperRepository(mistake_repo)
+
+
+MistakeRepo = Annotated[MistakeRepository, Depends(get_mistake_repo)]
+PaperRepo = Annotated[PaperRepository, Depends(get_paper_repo)]
+
+
+# ── 资源所有权依赖（使用 Repository）──────────────
+
+
 async def get_mistake_with_ownership(
     mistake_id: str,
     current_user: CurrentUser,
+    repo: MistakeRepo,
 ) -> MistakeEntry:
     """获取错题并验证所有权"""
-    try:
-        obj_id = PydanticObjectId(mistake_id)
-    except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="无效的错题 ID",
-        )
-
-    mistake = await MistakeEntry.get(obj_id)
+    mistake = await repo.get_by_id(mistake_id)
 
     if mistake is None:
         raise HTTPException(
@@ -121,11 +136,9 @@ async def get_mistake_with_ownership(
             detail="错题不存在",
         )
 
-    await mistake.fetch_link(MistakeEntry.owner)
-
     if current_user.role == "admin":
         return mistake
-    if mistake.owner.id != current_user.id:
+    if repo.get_owner_id(mistake) != str(current_user.id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="无权访问该错题",
@@ -140,17 +153,10 @@ OwnedMistake = Annotated[MistakeEntry, Depends(get_mistake_with_ownership)]
 async def get_paper_with_ownership(
     paper_id: str,
     current_user: CurrentUser,
+    repo: PaperRepo,
 ) -> Paper:
     """获取试卷并验证所有权"""
-    try:
-        obj_id = PydanticObjectId(paper_id)
-    except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="无效的试卷 ID",
-        )
-
-    paper = await Paper.get(obj_id)
+    paper = await repo.get_by_id(paper_id)
 
     if paper is None:
         raise HTTPException(
@@ -158,11 +164,9 @@ async def get_paper_with_ownership(
             detail="试卷不存在",
         )
 
-    await paper.fetch_link(Paper.owner)
-
     if current_user.role == "admin":
         return paper
-    if paper.owner.id != current_user.id:
+    if repo.get_owner_id(paper) != str(current_user.id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="无权访问该试卷",

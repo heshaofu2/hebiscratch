@@ -4,7 +4,6 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException, Query, UploadFile, File, status
 from fastapi.responses import Response as RawResponse
 
-from app.models import MistakeEntry
 from app.schemas.mistake import (
     MistakeCreate,
     MistakeUpdate,
@@ -25,7 +24,7 @@ from app.services.mistake import (
 )
 from app.services.storage import get_storage_service
 
-from .deps import CurrentUser, OwnedMistake
+from .deps import CurrentUser, MistakeRepo, OwnedMistake
 
 router = APIRouter()
 
@@ -33,65 +32,43 @@ ALLOWED_IMAGE_TYPES = {"image/png", "image/jpeg", "image/jpg", "image/webp"}
 
 
 @router.get("/subjects")
-async def list_subjects(current_user: CurrentUser):
+async def list_subjects(current_user: CurrentUser, repo: MistakeRepo):
     """获取当前用户已使用的科目列表"""
-    mistakes = await MistakeEntry.find(
-        MistakeEntry.owner.id == current_user.id,
-    ).to_list()
-    subjects = sorted({m.subject for m in mistakes})
-    return subjects
+    return await repo.get_subjects(str(current_user.id))
 
 
 @router.get("/stats", response_model=MistakeStats)
-async def get_stats(current_user: CurrentUser):
+async def get_stats(current_user: CurrentUser, repo: MistakeRepo):
     """获取错题统计数据"""
-    mistakes = await MistakeEntry.find(
-        MistakeEntry.owner.id == current_user.id,
-    ).to_list()
-
-    total = len(mistakes)
-    mastered = sum(1 for m in mistakes if m.is_mastered)
-    subjects: dict[str, int] = {}
-    for m in mistakes:
-        subjects[m.subject] = subjects.get(m.subject, 0) + 1
-
-    return MistakeStats(
-        total=total,
-        mastered=mastered,
-        unmastered=total - mastered,
-        subjects=subjects,
-    )
+    stats = await repo.get_stats(str(current_user.id))
+    return MistakeStats(**stats)
 
 
 @router.get("", response_model=list[MistakeListResponse])
 async def list_mistakes(
     current_user: CurrentUser,
+    repo: MistakeRepo,
     subject: Optional[list[str]] = Query(None),
     mastered: Optional[bool] = None,
     search: Optional[str] = None,
 ):
     """获取当前用户的错题列表，支持筛选"""
-    query = {"owner.$id": current_user.id}
-
-    if subject:
-        query["subject"] = subject[0] if len(subject) == 1 else {"$in": subject}
-    if mastered is not None:
-        query["is_mastered"] = mastered
-    if search:
-        query["question"] = {"$regex": search, "$options": "i"}
-
-    mistakes = await MistakeEntry.find_many(
-        query
-    ).sort(-MistakeEntry.created_at).to_list()
-
+    mistakes = await repo.list_by_owner(
+        str(current_user.id),
+        subjects=subject,
+        mastered=mastered,
+        search=search,
+    )
     return [m.to_list_response() for m in mistakes]
 
 
 @router.post("", response_model=MistakeResponse, status_code=status.HTTP_201_CREATED)
-async def create_mistake(data: MistakeCreate, current_user: CurrentUser):
+async def create_mistake(
+    data: MistakeCreate, current_user: CurrentUser, repo: MistakeRepo
+):
     """手动创建单个错题"""
-    mistake = MistakeEntry(
-        owner=current_user,
+    mistake = await repo.create(
+        current_user,
         subject=data.subject,
         question=data.question,
         wrong_answer=data.wrongAnswer,
@@ -100,29 +77,29 @@ async def create_mistake(data: MistakeCreate, current_user: CurrentUser):
         knowledge_points=data.knowledgePoints,
         source="manual",
     )
-    await mistake.insert()
     return mistake.to_response()
 
 
 @router.post("/batch", response_model=list[MistakeResponse], status_code=status.HTTP_201_CREATED)
-async def create_mistakes_batch(data: MistakeBatchCreate, current_user: CurrentUser):
+async def create_mistakes_batch(
+    data: MistakeBatchCreate, current_user: CurrentUser, repo: MistakeRepo
+):
     """批量创建错题（图片识别确认后提交）"""
-    results = []
-    for item in data.items:
-        mistake = MistakeEntry(
-            owner=current_user,
-            subject=item.subject,
-            question=item.question,
-            wrong_answer=item.wrongAnswer,
-            correct_answer=item.correctAnswer,
-            analysis=item.analysis,
-            source="image",
-            source_image_path=item.sourceImagePath or data.sourceImagePath,
-            cropped_image_path=item.croppedImagePath,
-        )
-        await mistake.insert()
-        results.append(mistake.to_response())
-    return results
+    items = [
+        {
+            "subject": item.subject,
+            "question": item.question,
+            "wrong_answer": item.wrongAnswer,
+            "correct_answer": item.correctAnswer,
+            "analysis": item.analysis,
+            "source": "image",
+            "source_image_path": item.sourceImagePath or data.sourceImagePath,
+            "cropped_image_path": item.croppedImagePath,
+        }
+        for item in data.items
+    ]
+    results = await repo.create_batch(current_user, items)
+    return [m.to_response() for m in results]
 
 
 @router.post("/recognize", response_model=ImageRecognitionResponse)
@@ -191,36 +168,20 @@ async def recognize_image(
 async def batch_delete_mistakes(
     data: MistakeBatchDeleteRequest,
     current_user: CurrentUser,
+    repo: MistakeRepo,
 ):
     """批量删除错题（验证所有权 + 清理 MinIO 图片）"""
-    from bson import ObjectId
+    mistakes = await repo.get_owned_by_ids(data.ids, str(current_user.id))
 
-    deleted = 0
     cropped_paths: list[str] = []
     source_paths: list[str] = []
-    ids_to_delete: list[ObjectId] = []
-
-    # 第一遍：验证所有权，收集图片路径
-    for raw_id in data.ids:
-        try:
-            oid = ObjectId(raw_id)
-        except Exception:
-            continue
-        mistake = await MistakeEntry.get(oid)
-        if not mistake or mistake.owner.ref.id != current_user.id:
-            continue
+    for mistake in mistakes:
         if mistake.cropped_image_path:
             cropped_paths.append(mistake.cropped_image_path)
         if mistake.source_image_path:
             source_paths.append(mistake.source_image_path)
-        ids_to_delete.append(oid)
 
-    # 批量删除文档
-    for oid in ids_to_delete:
-        mistake = await MistakeEntry.get(oid)
-        if mistake:
-            await mistake.delete()
-            deleted += 1
+    deleted = await repo.delete_many(mistakes)
 
     # 清理裁剪图（一对一，直接删除）
     for path in cropped_paths:
@@ -228,9 +189,7 @@ async def batch_delete_mistakes(
 
     # 清理原图（仅当无其他引用时）
     for path in set(source_paths):
-        sibling_count = await MistakeEntry.find(
-            MistakeEntry.source_image_path == path,
-        ).count()
+        sibling_count = await repo.count_by_source_image(path)
         if sibling_count == 0:
             delete_mistake_image(path)
 
@@ -241,10 +200,9 @@ async def batch_delete_mistakes(
 async def batch_update_mistakes(
     data: MistakeBatchUpdateRequest,
     current_user: CurrentUser,
+    repo: MistakeRepo,
 ):
     """批量更新错题"""
-    from bson import ObjectId
-
     update_data = data.update.model_dump(exclude_unset=True)
     field_map = {
         "wrongAnswer": "wrong_answer",
@@ -256,19 +214,13 @@ async def batch_update_mistakes(
         if camel in update_data:
             update_data[snake] = update_data.pop(camel)
 
+    mistakes = await repo.get_owned_by_ids(data.ids, str(current_user.id))
     updated = 0
-    for raw_id in data.ids:
-        try:
-            oid = ObjectId(raw_id)
-        except Exception:
-            continue
-        mistake = await MistakeEntry.get(oid)
-        if not mistake or mistake.owner.ref.id != current_user.id:
-            continue
+    for mistake in mistakes:
         for field, value in update_data.items():
             setattr(mistake, field, value)
         mistake.updated_at = datetime.now(timezone.utc)
-        await mistake.save()
+        await repo.save(mistake)
         updated += 1
 
     return {"updated": updated}
@@ -320,7 +272,9 @@ async def get_mistake_source_image(mistake: OwnedMistake):
 
 
 @router.put("/{mistake_id}", response_model=MistakeResponse)
-async def update_mistake(data: MistakeUpdate, mistake: OwnedMistake):
+async def update_mistake(
+    data: MistakeUpdate, mistake: OwnedMistake, repo: MistakeRepo
+):
     """更新错题"""
     update_data = data.model_dump(exclude_unset=True)
 
@@ -339,31 +293,30 @@ async def update_mistake(data: MistakeUpdate, mistake: OwnedMistake):
         setattr(mistake, field, value)
 
     mistake.updated_at = datetime.now(timezone.utc)
-    await mistake.save()
+    await repo.save(mistake)
     return mistake.to_response()
 
 
 @router.delete("/{mistake_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_mistake(mistake: OwnedMistake):
+async def delete_mistake(mistake: OwnedMistake, repo: MistakeRepo):
     """删除错题（同时清理 MinIO 图片）"""
     # 裁剪图片是一对一关系，直接删除
     if mistake.cropped_image_path:
         delete_mistake_image(mistake.cropped_image_path)
     # 原图可能被多道题共享，仅当无其他引用时才删除
     if mistake.source_image_path:
-        sibling_count = await MistakeEntry.find(
-            MistakeEntry.source_image_path == mistake.source_image_path,
-            MistakeEntry.id != mistake.id,
-        ).count()
+        sibling_count = await repo.count_by_source_image(
+            mistake.source_image_path, exclude_id=str(mistake.id)
+        )
         if sibling_count == 0:
             delete_mistake_image(mistake.source_image_path)
-    await mistake.delete()
+    await repo.delete(mistake)
 
 
 @router.post("/{mistake_id}/review", response_model=MistakeResponse)
-async def review_mistake(mistake: OwnedMistake):
+async def review_mistake(mistake: OwnedMistake, repo: MistakeRepo):
     """增加复习次数"""
     mistake.review_count += 1
     mistake.updated_at = datetime.now(timezone.utc)
-    await mistake.save()
+    await repo.save(mistake)
     return mistake.to_response()

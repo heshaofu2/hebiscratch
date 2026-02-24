@@ -19,7 +19,7 @@ from app.schemas.admin import (
 )
 from app.services.project import delete_project_data
 
-from .deps import AdminUser
+from .deps import AdminUser, MistakeRepo, PaperRepo
 
 router = APIRouter()
 
@@ -187,7 +187,12 @@ async def update_user(_: AdminUser, user_id: str, data: UserUpdate):
 
 
 @router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_user(admin: AdminUser, user_id: str):
+async def delete_user(
+    admin: AdminUser,
+    user_id: str,
+    mistake_repo: MistakeRepo,
+    paper_repo: PaperRepo,
+):
     """删除用户及其关联数据"""
     try:
         obj_id = PydanticObjectId(user_id)
@@ -213,6 +218,10 @@ async def delete_user(admin: AdminUser, user_id: str):
 
     # 删除用户的所有项目
     await Project.find(Project.owner.id == user.id).delete()
+
+    # 删除用户的所有错题和试卷
+    await mistake_repo.delete_by_owner(str(user.id))
+    await paper_repo.delete_by_owner(str(user.id))
 
     # 删除用户
     await user.delete()
