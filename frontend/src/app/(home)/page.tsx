@@ -22,7 +22,7 @@ export default function HomePage() {
         {/* 标题区 */}
         <div className="text-center mb-16">
           <h1 className="text-5xl font-bold text-gray-900 mb-4">
-            阿谦的<span className="text-orange-500">魔法小屋</span>
+            阿谦的<span className="text-orange-500">哆啦 A 梦</span>
           </h1>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
             编程创作与学习成长的魔法空间，用积木编程释放创造力，用错题本攻克学习难关。

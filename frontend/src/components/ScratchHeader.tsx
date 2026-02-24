@@ -21,7 +21,7 @@ export function ScratchHeader() {
   return (
     <nav className="h-16 bg-orange-500 text-white shadow-md">
       <div className="max-w-7xl mx-auto px-4 h-full flex items-center justify-between">
-        <Link href="/" className="text-2xl font-bold hover:opacity-90">
+        <Link href="/projects" className="text-2xl font-bold hover:opacity-90">
           Scratch 编程
         </Link>
 
@@ -30,6 +30,12 @@ export function ScratchHeader() {
             <div className="w-20 h-8 bg-orange-400 animate-pulse rounded" />
           ) : isAuthenticated ? (
             <div className="flex items-center gap-2">
+              <Link
+                href="/"
+                className="px-3 py-1 text-sm hover:bg-orange-600 rounded transition"
+              >
+                回到主站
+              </Link>
               <span className="text-sm">{user?.username}</span>
               <button
                 onClick={handleLogout}
