@@ -15,7 +15,7 @@ export function HomeNavbar() {
     <nav className="h-16 bg-orange-500 text-white shadow-md">
       <div className="max-w-7xl mx-auto px-4 h-full flex items-center justify-between">
         <Link href="/" className="text-2xl font-bold hover:opacity-90">
-          哆啦 A 梦
+          万能口袋
         </Link>
 
         <div className="flex items-center gap-4">
