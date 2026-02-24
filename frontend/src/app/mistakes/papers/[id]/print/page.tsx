@@ -133,14 +133,15 @@ export default function PrintPaperPage() {
       {/* 打印样式 */}
       <style jsx global>{`
         @media print {
-          /* 隐藏所有非打印内容 */
-          body > *:not(#__next) { display: none !important; }
-
-          /* 隐藏 header 和 sidebar */
+          /* 隐藏 header、sidebar 和工具栏 */
           nav, aside, .print\\:hidden { display: none !important; }
 
-          /* 打印时的布局调整 */
-          main { margin: 0 !important; padding: 0 !important; }
+          /* 重置布局容器，让打印内容自然流动 */
+          main {
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: visible !important;
+          }
 
           @page {
             margin: 15mm;
