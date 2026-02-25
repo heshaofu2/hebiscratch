@@ -14,7 +14,8 @@ export function PracticeHeader() {
   return (
     <nav className="h-16 bg-indigo-500 text-white shadow-md">
       <div className="max-w-7xl mx-auto px-4 h-full flex items-center justify-between">
-        <Link href="/practice/questions" className="text-2xl font-bold hover:opacity-90">
+        <Link href="/practice/questions" className="flex items-center gap-2 text-2xl font-bold hover:opacity-90">
+          <img src="/icon.svg" alt="" className="h-9 w-9" />
           错题本
         </Link>
 

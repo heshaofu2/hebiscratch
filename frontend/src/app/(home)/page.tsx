@@ -21,6 +21,7 @@ export default function HomePage() {
       <div className="max-w-6xl mx-auto px-4 py-20">
         {/* 标题区 */}
         <div className="text-center mb-16">
+          <img src="/icon.svg" alt="万能口袋" className="h-28 w-28 mx-auto mb-6" />
           <h1 className="text-5xl font-bold text-gray-900 mb-4">
             阿谦的<span className="text-orange-500">万能口袋</span>
           </h1>

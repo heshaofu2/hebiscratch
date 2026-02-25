@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Scratch 私有化服务",
-  description: "私有化部署的 Scratch 编程平台",
+  title: "万能口袋",
+  description: "阿谦的万能口袋",
 };
 
 export default function RootLayout({
