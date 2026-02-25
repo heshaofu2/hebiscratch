@@ -45,6 +45,9 @@ minio_data/
 # Scratch GUI build (large files)
 scratch-gui-build/
 
+# Docker Compose 覆盖文件（各环境自定义）
+docker-compose.override.yml
+
 todolist.md
 .env.development
 mynote.md
