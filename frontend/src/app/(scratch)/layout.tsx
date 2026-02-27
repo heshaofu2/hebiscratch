@@ -1,4 +1,7 @@
+'use client';
+
 import { ScratchHeader } from '@/components/ScratchHeader';
+import { AuthGuard } from '@/components/AuthGuard';
 
 export default function ScratchLayout({
   children,
@@ -6,9 +9,9 @@ export default function ScratchLayout({
   children: React.ReactNode;
 }) {
   return (
-    <>
+    <AuthGuard>
       <ScratchHeader />
       {children}
-    </>
+    </AuthGuard>
   );
 }

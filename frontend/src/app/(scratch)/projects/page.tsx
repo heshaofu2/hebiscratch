@@ -2,29 +2,19 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useAuthStore } from '@/store/auth';
 import { useProjectsStore } from '@/store/projects';
 import { CreateProjectDialog } from '@/components/CreateProjectDialog';
 import type { Project } from '@/types';
 
 export default function ProjectsPage() {
-  const router = useRouter();
-  const { isAuthenticated, isLoading: authLoading } = useAuthStore();
   const { projects, isLoading, fetchProjects, deleteProject, shareProject, unshareProject } = useProjectsStore();
   const [sharingId, setSharingId] = useState<string | null>(null);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
 
   useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      router.push('/auth/login?redirect=%2Fprojects');
-      return;
-    }
-    if (isAuthenticated) {
-      fetchProjects();
-    }
-  }, [authLoading, isAuthenticated, router, fetchProjects]);
+    fetchProjects();
+  }, [fetchProjects]);
 
   const handleDelete = async (project: Project) => {
     if (confirm(`确定要删除项目 "${project.title}" 吗？此操作不可恢复。`)) {
@@ -52,7 +42,7 @@ export default function ProjectsPage() {
     alert('分享链接已复制到剪贴板');
   };
 
-  if (authLoading || isLoading) {
+  if (isLoading) {
     return (
       <div className="min-h-[calc(100vh-64px)] flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-4 border-orange-500 border-t-transparent"></div>

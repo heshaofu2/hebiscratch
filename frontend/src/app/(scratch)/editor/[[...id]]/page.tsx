@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { useAuthStore } from '@/store/auth';
 import { useProjectsStore } from '@/store/projects';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -27,7 +26,6 @@ export default function EditorPage() {
   const searchParams = useSearchParams();
   const projectId = params?.id?.[0] as string | undefined;
 
-  const { isAuthenticated, isLoading: authLoading } = useAuthStore();
   const {
     currentProject,
     fetchProject,
@@ -48,20 +46,14 @@ export default function EditorPage() {
   const [currentProjectId, setCurrentProjectId] = useState<string | undefined>(projectId);
 
   useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      router.push(`/auth/login?redirect=${encodeURIComponent(window.location.pathname)}`);
-      return;
-    }
-
-    // 仅编辑模式（有 projectId）才需要加载项目
-    if (projectId && isAuthenticated) {
+    if (projectId) {
       fetchProject(projectId);
     }
 
     return () => {
       setCurrentProject(null);
     };
-  }, [authLoading, isAuthenticated, projectId, router, fetchProject, setCurrentProject]);
+  }, [projectId, fetchProject, setCurrentProject]);
 
   // 用于跟踪是否是首次加载项目，使用 ref 配合项目 ID 来正确追踪
   const loadedProjectIdRef = useRef<string | null>(null);
@@ -105,14 +97,6 @@ export default function EditorPage() {
       setIsSaving(false);
     }
   }, [isSaving, currentProjectId, title, createProject, updateProject]);
-
-  if (authLoading) {
-    return (
-      <div className="h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-orange-500 border-t-transparent"></div>
-      </div>
-    );
-  }
 
   // 编辑模式下：项目加载失败时显示错误提示
   if (projectId && projectError && !currentProject) {
