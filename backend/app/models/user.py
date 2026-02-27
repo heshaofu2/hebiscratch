@@ -13,7 +13,7 @@ class User(Document):
     avatar: Optional[str] = None
     role: str = "user"  # 'user' | 'admin'
     is_active: bool = True  # 账号是否启用
-    recognize_limit: Optional[int] = None  # None = 无限制, 正整数 = 上限
+    recognize_limit: Optional[int] = 10  # None = 无限制, 正整数 = 上限
     recognize_count: int = 0  # 累计识别次数
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
