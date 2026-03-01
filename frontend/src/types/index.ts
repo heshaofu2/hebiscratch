@@ -42,6 +42,14 @@ export interface ApiError {
   code?: string;
 }
 
+// Admin Dashboard types
+export interface DashboardStats {
+  userCount: number;
+  projectCount: number;
+  questionCount: number;
+  paperCount: number;
+}
+
 // Admin types
 export interface AdminUser {
   _id: string;

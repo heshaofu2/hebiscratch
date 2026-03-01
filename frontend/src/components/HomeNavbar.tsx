@@ -26,7 +26,7 @@ export function HomeNavbar() {
             <>
               {user?.role === 'admin' && (
                 <Link
-                  href="/admin/users"
+                  href="/admin"
                   className="px-4 py-2 hover:bg-orange-600 rounded-lg transition"
                 >
                   管理后台

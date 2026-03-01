@@ -1,3 +1,4 @@
+import asyncio
 import math
 from datetime import datetime, timezone
 from typing import Optional
@@ -6,7 +7,7 @@ from beanie import PydanticObjectId
 from fastapi import APIRouter, HTTPException, Query, status
 
 from app.core.security import hash_password
-from app.models import Project, User
+from app.models import Paper, Project, QuestionEntry, User
 from app.schemas.admin import (
     AdminProjectItem,
     PaginatedProjects,
@@ -22,6 +23,23 @@ from app.services.project import delete_project_data
 from .deps import AdminUser, QuestionRepo, PaperRepo
 
 router = APIRouter()
+
+
+@router.get("/stats")
+async def get_stats(_: AdminUser):
+    """获取平台统计数据"""
+    user_count, project_count, question_count, paper_count = await asyncio.gather(
+        User.count(),
+        Project.count(),
+        QuestionEntry.count(),
+        Paper.count(),
+    )
+    return {
+        "userCount": user_count,
+        "projectCount": project_count,
+        "questionCount": question_count,
+        "paperCount": paper_count,
+    }
 
 
 @router.get("/users", response_model=PaginatedUsers)

@@ -5,6 +5,7 @@ import type {
   Project,
   AuthResponse,
   ApiError,
+  DashboardStats,
   AdminUser,
   AdminUserDetail,
   PaginatedUsers,
@@ -143,6 +144,11 @@ export const shareApi = {
 
 // Admin API
 export const adminApi = {
+  getStats: async (): Promise<DashboardStats> => {
+    const response = await api.get<DashboardStats>('/admin/stats');
+    return response.data;
+  },
+
   listUsers: async (params: {
     page?: number;
     pageSize?: number;
