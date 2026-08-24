@@ -12,27 +12,13 @@
 
 ---
 
-## 服务器访问信息
+## 历史环境说明
 
-| 项目 | 值 |
-|-----|-----|
-| 服务器 IP | 120.26.7.208 |
-| SSH 密钥 | 当前目录下的 `hsf.pem` |
-| SSH 用户 | root |
-| 前端地址 | http://120.26.7.208:3000 |
-| 后端 API | http://120.26.7.208:3001 |
-| 项目部署路径 | /root/scratch |
-
-### SSH 登录命令
-
-```bash
-ssh -i hsf.pem root@120.26.7.208
-```
+本报告记录于已退役的旧服务器环境。旧 IP、SSH 密钥和端口直连地址已删除；当前服务器与部署方式以 [`../DEPLOYMENT.md`](../DEPLOYMENT.md) 为准。
 
 ### 测试项目
 
 - 项目 ID：`697edb2f728b06bfb3607b29`
-- 访问 URL：`http://120.26.7.208:3000/projects/697edb2f728b06bfb3607b29/edit`
 - MinIO 存储路径：`scratch-projects/projects/697edb2f728b06bfb3607b29/project.sb3`
 
 ---
@@ -439,11 +425,8 @@ npm run build
 # 2. 复制构建产物
 cp -r build/* ../frontend/public/scratch/
 
-# 3. 上传到服务器
-scp -i hsf.pem -r frontend/public/scratch/* root@120.26.7.208:/opt/scratch/frontend/public/scratch/
-
-# 4. 重新构建前端 Docker 镜像
-ssh -i hsf.pem root@120.26.7.208 "cd /opt/scratch && docker compose build --no-cache frontend && docker compose up -d frontend"
+# 3. 上传并重新构建前端 Docker 镜像
+# 使用 ../DEPLOYMENT.md 中当前有效的服务器信息和部署流程
 ```
 
 **优点**：

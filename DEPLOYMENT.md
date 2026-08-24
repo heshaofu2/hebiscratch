@@ -1,6 +1,6 @@
 # Scratch 私有化部署指南
 
-本文档指导您将 Scratch 服务部署到阿里云轻量应用服务器。
+本文档指导您将 Scratch 服务部署到生产 Linux VPS。
 
 ## 目录
 
@@ -84,11 +84,11 @@ scratch/                          # 主仓库 (GitHub: heshaofu2/hebiscratch)
 
 ### 服务器信息
 
-- **服务器**: 阿里云轻量级服务器
-- **IP**: 120.26.7.208
-- **SSH 密钥**: `./hsf.pem`
+- **服务器**: RackNerd VPS
+- **IP**: 64.188.29.162
+- **SSH 密钥**: `~/.ssh/id_ed25519`（自动使用）
 - **项目路径**: `/opt/scratch`
-- **访问地址**: http://120.26.7.208
+- **访问地址**: https://aqian.bibridge.top
 
 ### 本地开发
 
@@ -114,14 +114,14 @@ cd scratch
 #### 方式一：一键部署
 
 ```bash
-ssh -i ./hsf.pem root@120.26.7.208 "cd /opt/scratch && git pull origin main && ./start.sh prod"
+ssh root@64.188.29.162 "cd /opt/scratch && git pull origin main && ./start.sh prod"
 ```
 
 #### 方式二：手动部署
 
 ```bash
 # 1. 连接服务器
-ssh -i ./hsf.pem root@120.26.7.208
+ssh root@64.188.29.162
 
 # 2. 进入项目目录
 cd /opt/scratch
@@ -137,13 +137,13 @@ git pull origin main
 
 ```bash
 # 查看容器状态
-ssh -i ./hsf.pem root@120.26.7.208 "docker ps"
+ssh root@64.188.29.162 "docker ps"
 
 # 查看日志
-ssh -i ./hsf.pem root@120.26.7.208 "cd /opt/scratch && ./start.sh logs"
+ssh root@64.188.29.162 "cd /opt/scratch && ./start.sh logs"
 
 # 停止服务
-ssh -i ./hsf.pem root@120.26.7.208 "cd /opt/scratch && ./start.sh stop"
+ssh root@64.188.29.162 "cd /opt/scratch && ./start.sh stop"
 ```
 
 ### 常用命令速查
@@ -178,7 +178,7 @@ git commit -m "fix: bug description"
 git push origin main
 
 # 2. 部署到服务器
-ssh -i ./hsf.pem root@120.26.7.208 "cd /opt/scratch && git pull origin main && ./start.sh prod"
+ssh root@64.188.29.162 "cd /opt/scratch && git pull origin main && ./start.sh prod"
 ```
 
 #### 场景 2：修改 scratch-gui 编辑器
@@ -193,7 +193,7 @@ git commit -m "feat: add new feature to editor"
 git push origin develop
 
 # 3. 部署到服务器（Docker 构建时会自动拉取最新的 scratch-gui）
-ssh -i ./hsf.pem root@120.26.7.208 "cd /opt/scratch && docker builder prune -af && ./start.sh prod"
+ssh root@64.188.29.162 "cd /opt/scratch && docker builder prune -af && ./start.sh prod"
 ```
 
 ---
@@ -204,7 +204,7 @@ ssh -i ./hsf.pem root@120.26.7.208 "cd /opt/scratch && docker builder prune -af 
 
 ### 前置要求
 
-- 阿里云轻量应用服务器（推荐配置：2vCPU 4GiB）
+- Linux VPS（推荐配置：2vCPU 4GiB）
 - 操作系统：Ubuntu 22.04 LTS 或 Debian 11+
 - 已配置 SSH 访问
 - （可选）已备案的域名
@@ -407,7 +407,7 @@ exit
 
 ### 1. 域名解析
 
-在阿里云域名控制台添加 A 记录：
+在域名 DNS 服务商的控制台添加 A 记录：
 
 | 记录类型 | 主机记录 | 记录值 |
 |---------|---------|--------|
@@ -756,7 +756,7 @@ kill <PID>
 
 1. 检查服务是否运行：`docker compose ps`
 2. 检查防火墙：`ufw status`
-3. 检查阿里云安全组是否开放 80/443 端口
+3. 检查主机防火墙和云侧防火墙是否开放 80/443 端口
 4. 检查 Nginx 日志：`docker compose logs nginx`
 
 ### Q5: 数据库连接失败
@@ -811,7 +811,7 @@ mc anonymous set download local/scratch-assets
 
 ### 注意事项
 
-1. **安全组配置**: 确保阿里云安全组开放了 80 端口
+1. **防火墙配置**: 确保主机防火墙和云侧防火墙开放了 80/443 端口
 
 2. **环境变量**: 生产环境的 `.env` 文件包含敏感信息（JWT_SECRET、MINIO 凭据），请妥善保管
 
@@ -824,7 +824,7 @@ mc anonymous set download local/scratch-assets
 
 5. **SSH 密钥权限**: 确保密钥文件权限正确：
    ```bash
-   chmod 600 ./hsf.pem
+   chmod 600 ~/.ssh/id_ed25519
    ```
 
 ---
