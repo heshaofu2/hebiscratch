@@ -214,7 +214,7 @@ shasum -a 256 frontend/public/scratch/embedded.js
 
 ```bash
 SCRATCH_RELEASE="scratch-assets-$(date +%Y%m%d-%H%M%S)"
-tar -czf "/tmp/${SCRATCH_RELEASE}.tgz" -C frontend/public scratch
+COPYFILE_DISABLE=1 tar -czf "/tmp/${SCRATCH_RELEASE}.tgz" -C frontend/public scratch
 shasum -a 256 "/tmp/${SCRATCH_RELEASE}.tgz"
 scp "/tmp/${SCRATCH_RELEASE}.tgz" root@64.188.29.162:/tmp/
 ssh root@64.188.29.162 "sha256sum '/tmp/${SCRATCH_RELEASE}.tgz'"
@@ -274,6 +274,7 @@ shasum -a 256 /tmp/scratch-release-embedded.js
 - 线上原启动文件为 27.4 MB，gzip 传输约 7.1 MB；本地正式构建为 18.3 MB，gzip 后约 6.1 MB，传输量减少约 15%。
 - 正式构建成功，四个实际项目在本地加载验证通过。当次当前电脑到服务器的下载速度约 20–24 KB/s，线上编辑器等待近 6 分钟才显示；切换构建模式不能单独解决访问链路缓慢。
 - 初次排查时未直接替换线上构建。后续核对确认，线上 `embedded.jsx` 与 scratch-gui 的 `c0275d1` 完全一致；本地后续提交 `d2b2c45` 移除了目标数量检查与清理逻辑。本次发布选用 `c0275d1` 进行生产构建，保留线上加载行为，不将后续逻辑改动混入构建模式修正。
+- 随后于北京时间 23:01 完成前端上线，部署提交为 `df64e92`。发布包的四个项目往返验证通过，线上全部 1,697 个静态文件与本地校验一致；公网完整下载校验通过，但仍耗时约 6 分钟。回退位置与验证范围见下方排查记录。
 
 详细证据见[本次排查记录](docs/Scratch编辑器加载缓慢排查-2026-09-12.md)。
 
