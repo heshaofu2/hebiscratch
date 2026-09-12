@@ -10,7 +10,7 @@ RUN npm config set registry https://registry.npmmirror.com
 # ========== 注意 ==========
 # scratch-gui 构建产物需要预先放在 public/scratch/ 目录中
 # 本地构建方法：
-#   cd scratch-gui-build && npm run build
+#   cd scratch-gui-build && NODE_ENV=production npm run build
 #   cp -r build/* ../frontend/public/scratch/
 # 或使用脚本：./build-scratch.sh pull
 # ===========================

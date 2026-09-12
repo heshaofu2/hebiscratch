@@ -70,7 +70,7 @@ build() {
     npm ci
 
     print_info "构建 scratch-gui..."
-    npm run build
+    NODE_ENV=production npm run build
 
     print_info "复制构建产物到 $OUTPUT_DIR..."
     cd ..

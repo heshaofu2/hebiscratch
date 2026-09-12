@@ -90,6 +90,22 @@ scratch/                          # 主仓库 (GitHub: heshaofu2/hebiscratch)
 - **项目路径**: `/opt/scratch`
 - **访问地址**: https://aqian.bibridge.top
 
+### Scratch 构建模式与上线顺序
+
+Scratch 编辑器与外层 Next.js 网站分开构建。`frontend/Dockerfile` 只复制 `frontend/public/scratch/` 中已有的编辑器产物，不会克隆或重新构建 scratch-gui。
+
+| 用途 | 在项目根目录执行的命令 | 模式 |
+|------|------|------|
+| 本地调试 Scratch 编辑器 | `cd scratch-gui-build && npm start` | 未设置 `NODE_ENV` 时默认开发模式 |
+| 生成待上线的编辑器 | `./build-scratch.sh` | 显式使用 `NODE_ENV=production`，并复制产物到前端目录 |
+| 更新编辑器源码后生成待上线版本 | `./build-scratch.sh pull` | 拉取源码后执行生产构建；执行前确认独立仓库没有待处理的本地改动 |
+
+在 `scratch-gui-build` 中直接执行 `npm run build`，未设置 `NODE_ENV` 时仍是开发构建；手动生产构建必须使用 `NODE_ENV=production npm run build`。Docker 中的生产环境变量不会改变已经生成的 Scratch 文件。
+
+**更新 Scratch 的完整顺序：核对源码版本 → 生产构建 → 复制、验证本地产物 → 上传并校验服务器产物 → 构建和更新前端容器 → 浏览器验收。** 具体命令见[修改 Scratch 编辑器或构建方式](#场景-2修改-scratch-gui-编辑器或构建方式)。
+
+`scratch-gui-build/` 与 `frontend/public/scratch/` 均被 Git 忽略，主仓库的 `git pull` 不会同步编辑器源码或构建产物。只修改网站或后端时，可以复用服务器上已验证的 Scratch 产物；首次部署、修改编辑器或修改构建模式时，必须先准备并同步产物。
+
 ### 本地开发
 
 ```bash
@@ -111,29 +127,15 @@ cd scratch
 
 ### 线上部署
 
-#### 方式一：一键部署
+当前 RackNerd 部署使用 `/opt/scratch/docker-compose.yml` 和 `/opt/scratch/docker-compose.override.yml` 两份配置（2026-09-12 按运行容器核验）。执行更新时同时指定这两份文件，保留线上 HTTPS、端口和挂载设置；部署位置或配置调整后应重新核对。
 
-```bash
-ssh root@64.188.29.162 "cd /opt/scratch && git pull origin main && ./start.sh prod"
-```
+- 只修改网站或后端：按[场景 1](#场景-1只修改前端后端代码)更新对应服务，复用已有编辑器产物。
+- 修改 Scratch 或切换构建模式：完整执行[场景 2](#场景-2修改-scratch-gui-编辑器或构建方式)。
+- 首次部署新环境：按[首次部署](#首次部署)准备配置与编辑器产物后启动。
 
-#### 方式二：手动部署
+`./start.sh prod` 当前只使用基础 `docker-compose.yml`，且不会执行 Scratch 构建；脚本中“Docker 会自动从 GitHub 克隆并构建 scratch-gui”的提示已过时。不要用它替代当前线上环境的完整更新流程。
 
-```bash
-# 1. 连接服务器
-ssh root@64.188.29.162
-
-# 2. 进入项目目录
-cd /opt/scratch
-
-# 3. 拉取最新代码
-git pull origin main
-
-# 4. 重新构建并启动
-./start.sh prod
-```
-
-#### 方式三：查看服务状态
+#### 查看服务状态
 
 ```bash
 # 查看容器状态
@@ -154,15 +156,15 @@ ssh root@64.188.29.162 "cd /opt/scratch && ./start.sh stop"
 |------|------|
 | `./start.sh dev` | 启动本地开发环境 |
 | `./start.sh stop` | 停止所有服务 |
-| `./build-scratch.sh` | 构建 scratch-gui 并复制到前端 |
+| `./build-scratch.sh` | 以生产模式构建 scratch-gui 并复制到前端 |
 | `./build-scratch.sh clone` | 首次克隆 scratch-gui |
-| `./build-scratch.sh pull` | 更新并重新构建 scratch-gui |
+| `./build-scratch.sh pull` | 更新源码，以生产模式重新构建并复制产物 |
 
 #### 服务器命令
 
 | 命令 | 说明 |
 |------|------|
-| `./start.sh prod` | 启动生产环境 |
+| `./start.sh prod` | 使用基础 Compose 配置启动；当前线上更新应使用下方双配置命令 |
 | `./start.sh stop` | 停止所有服务 |
 | `./start.sh logs` | 查看服务日志 |
 | `./start.sh status` | 查看服务状态 |
@@ -171,30 +173,109 @@ ssh root@64.188.29.162 "cd /opt/scratch && ./start.sh stop"
 
 #### 场景 1：只修改前端/后端代码
 
-```bash
-# 1. 本地修改代码并提交
-git add .
-git commit -m "fix: bug description"
-git push origin main
-
-# 2. 部署到服务器
-ssh root@64.188.29.162 "cd /opt/scratch && git pull origin main && ./start.sh prod"
-```
-
-#### 场景 2：修改 scratch-gui 编辑器
+先确认待发布的主仓库代码已经过验证，并在明确要求提交、推送后进入远端 `main`。以下在服务器执行；如存在影响更新的本地改动，先处理，不要强制覆盖。
 
 ```bash
-# 1. 修改 scratch-gui-build 中的代码
+cd /opt/scratch
+git status --short
+git pull --ff-only origin main
 
-# 2. 提交 scratch-gui 修改
-cd scratch-gui-build
-git add .
-git commit -m "feat: add new feature to editor"
-git push origin develop
-
-# 3. 部署到服务器（Docker 构建时会自动拉取最新的 scratch-gui）
-ssh root@64.188.29.162 "cd /opt/scratch && docker builder prune -af && ./start.sh prod"
+# 以下示例只更新前端；只改后端时将 frontend 换成 backend
+docker compose -f docker-compose.yml -f docker-compose.override.yml build frontend
+docker compose -f docker-compose.yml -f docker-compose.override.yml up -d --no-deps frontend
 ```
+
+若前后端都修改，两条命令均指定 `frontend backend`。更新前端前，确认服务器的 `frontend/public/scratch/` 已有经过验证的编辑器产物。Webhook 自动部署也只按主仓库文件变化重建服务，不会生成或上传 Scratch 产物。
+
+#### 场景 2：修改 scratch-gui 编辑器或构建方式
+
+**① 核对版本并完成生产构建（本地项目根目录）**
+
+确认主仓库与 scratch-gui 独立仓库的待发布版本，保留未提交改动。若源码与线上构建有差异，应先确认并保留线上需要的修复。首次没有编辑器源码时，先执行 `./build-scratch.sh clone`。
+
+```bash
+git status --short
+git -C scratch-gui-build status --short
+git -C scratch-gui-build rev-parse HEAD
+
+# 使用已核对的源码生产构建，并复制到 frontend/public/scratch/
+./build-scratch.sh
+
+# 核验编辑器入口和库资源存在
+test -s frontend/public/scratch/embedded.html
+test -s frontend/public/scratch/embedded.js
+test -d frontend/public/scratch/assets
+shasum -a 256 frontend/public/scratch/embedded.js
+```
+
+构建成功后先在本地浏览器验证新建和打开已有项目。`assets/` 是角色、背景和声音库资源，首次部署还需按[资源下载说明](docs/fix-scratch-asset-loading.md#资源文件下载)准备；构建脚本不会自动下载这些库资源。同步完整的 `frontend/public/scratch/`，包含 `chunks/`、`static/` 和 `assets/`，不要只上传 `embedded.js`。
+
+**② 打包上传并比对校验值（继续在同一个本地终端执行）**
+
+```bash
+SCRATCH_RELEASE="scratch-assets-$(date +%Y%m%d-%H%M%S)"
+tar -czf "/tmp/${SCRATCH_RELEASE}.tgz" -C frontend/public scratch
+shasum -a 256 "/tmp/${SCRATCH_RELEASE}.tgz"
+scp "/tmp/${SCRATCH_RELEASE}.tgz" root@64.188.29.162:/tmp/
+ssh root@64.188.29.162 "sha256sum '/tmp/${SCRATCH_RELEASE}.tgz'"
+```
+
+确认本地与服务器压缩包的 SHA-256 一致，再继续。代码提交或推送不能替代这一步。
+
+**③ 备份并更新服务器构建输入（继续在同一个本地终端执行）**
+
+先确认此次前端发布的回退镜像可用；下面的归档只备份服务器上的静态产物，不替代运行镜像的备份。不要与其他人工发布或 Webhook 部署同时操作。
+
+```bash
+ssh root@64.188.29.162 "
+  set -e
+  mkdir -p /opt/backups/scratch
+  tar -czf '/opt/backups/scratch/${SCRATCH_RELEASE}-before.tgz' -C /opt/scratch/frontend/public scratch
+  tar -xzf '/tmp/${SCRATCH_RELEASE}.tgz' -C /opt/scratch/frontend/public
+  sha256sum /opt/scratch/frontend/public/scratch/embedded.js
+"
+```
+
+确认服务器 `embedded.js` 的 SHA-256 与步骤①一致。首次部署没有旧产物目录时，先创建服务器的 `frontend/public/`，省略旧产物归档步骤。此时文件只更新到服务器构建目录，运行中的前端容器尚未使用新文件。
+
+**④ 重建并更新前端容器（服务器 `/opt/scratch`）**
+
+需要更新主仓库代码时，先检查工作区并执行 `git pull --ff-only origin main`。然后运行：
+
+```bash
+cd /opt/scratch
+docker compose -f docker-compose.yml -f docker-compose.override.yml build frontend
+docker compose -f docker-compose.yml -f docker-compose.override.yml up -d --no-deps frontend
+docker compose -f docker-compose.yml -f docker-compose.override.yml ps frontend
+docker exec scratch-frontend sha256sum /app/public/scratch/embedded.js
+```
+
+容器内 SHA-256 应与步骤①一致。只更新 Scratch 时不需要重建后端、数据库或 Nginx，也不需要清理整台服务器的 Docker 构建缓存。
+
+**⑤ 验证线上结果（本地电脑及浏览器）**
+
+```bash
+curl -fsS https://aqian.bibridge.top/health
+curl --fail --silent --show-error --compressed --max-time 600 \
+  -D /tmp/scratch-release-response.headers \
+  -o /tmp/scratch-release-embedded.js \
+  -w 'HTTP=%{http_code} downloaded=%{size_download} bytes time=%{time_total}s\n' \
+  https://aqian.bibridge.top/scratch/embedded.js
+shasum -a 256 /tmp/scratch-release-embedded.js
+```
+
+确认脚本完整下载、SHA-256 与步骤①一致，并查看 GET 响应头中的 `Content-Encoding`。`--compressed` 保存的是解压后的文件，`size_download` 是网络传输量；不要只凭 HTTP 200 或 HEAD 响应判断加载与压缩正常。
+
+在浏览器中验证：新建项目出现默认角色；打开已有项目时角色、代码、背景和声音完整；使用测试副本验证保存后重开；记录首次加载时间。验证失败时使用已保留的运行镜像及匹配产物回退，保留现场日志。
+
+### 2026-09-12 生产构建修正记录
+
+- `build-scratch.sh` 改为 `NODE_ENV=production npm run build`，`frontend/Dockerfile` 的手动构建示例同步修正。
+- 线上原启动文件为 27.4 MB，gzip 传输约 7.1 MB；本地正式构建为 18.3 MB，gzip 后约 6.1 MB，传输量减少约 15%。
+- 正式构建成功，四个实际项目在本地加载验证通过。当次当前电脑到服务器的下载速度约 20–24 KB/s，线上编辑器等待近 6 分钟才显示；切换构建模式不能单独解决访问链路缓慢。
+- 初次排查时未直接替换线上构建。后续核对确认，线上 `embedded.jsx` 与 scratch-gui 的 `c0275d1` 完全一致；本地后续提交 `d2b2c45` 移除了目标数量检查与清理逻辑。本次发布选用 `c0275d1` 进行生产构建，保留线上加载行为，不将后续逻辑改动混入构建模式修正。
+
+详细证据见[本次排查记录](docs/Scratch编辑器加载缓慢排查-2026-09-12.md)。
 
 ---
 
@@ -346,6 +427,8 @@ MINIO_SECRET_KEY=<粘贴生成的MINIO_SECRET_KEY>
 按 `Ctrl+O` 保存，`Ctrl+X` 退出。
 
 #### 2.3 构建并启动服务
+
+首次部署前，先按[Scratch 产物准备与同步流程](#场景-2修改-scratch-gui-编辑器或构建方式)完成步骤①至③，并将其中的主机和目标路径替换为本次新环境（本节示例为 `/opt/apps/scratch`）。确认 `frontend/public/scratch/` 中的入口文件和资源齐全，再构建镜像。下面命令仅用于新环境；现有 RackNerd 线上更新使用前文的双配置命令。
 
 ```bash
 # 构建镜像（首次部署需要较长时间）
@@ -599,16 +682,7 @@ docker compose down -v
 
 ### 更新部署
 
-```bash
-cd /opt/apps/scratch
-
-# 拉取最新代码
-git pull
-
-# 重新构建并部署
-docker compose build
-docker compose up -d
-```
+当前 RackNerd 环境的工作目录是 `/opt/scratch`，按[完整更新流程示例](#完整更新流程示例)选择更新范围。修改 Scratch 时必须先生产构建、同步产物，再更新前端容器；仅执行 `git pull` 或 `docker compose build` 不会获得新的编辑器产物。
 
 ### 数据备份
 
@@ -793,9 +867,9 @@ mc anonymous set download local/scratch-assets
 
 ### Q7: 构建失败
 
-1. 清理构建缓存：`docker builder prune -af`
-2. 检查网络：国内服务器需要配置镜像加速（已在 Dockerfile 中配置）
-3. 查看详细构建日志
+1. 查看详细构建日志，定位失败步骤。
+2. 若缺少 Scratch 文件，先完成生产构建和产物同步；清理缓存不会生成这些文件。
+3. 若拉取镜像或依赖失败，检查网络及镜像源配置。
 
 ---
 
@@ -815,10 +889,7 @@ mc anonymous set download local/scratch-assets
 
 2. **环境变量**: 生产环境的 `.env` 文件包含敏感信息（JWT_SECRET、MINIO 凭据），请妥善保管
 
-3. **构建缓存**: 如果 scratch-gui 更新后服务器没有拉取最新代码，先清理构建缓存：
-   ```bash
-   docker builder prune -af
-   ```
+3. **编辑器更新**: 新版本未生效时，先比对本地产物、服务器构建目录和运行容器内 `embedded.js` 的 SHA-256，再检查前端镜像是否已重建、容器是否已更新。清理 Docker 缓存不能代替 Scratch 生产构建和产物上传。
 
 4. **micro:bit 功能**: 当前构建跳过了 micro:bit 固件下载，如需此功能请手动配置
 
